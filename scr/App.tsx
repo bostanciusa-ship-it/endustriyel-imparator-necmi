@@ -1,14 +1,10 @@
-Yatırımların ne işe yaradığını belirten kısa açıklamaları ve geliştirilmiş yeni yapıyı aşağıda bulabilirsin. Bu versiyonda her butonun altında, o yatırımın ekonomine nasıl bir katkı sağladığını görebilirsin.
-
-Güncellenmiş App.tsx (Yatırım Açıklamalarıyla)
-TypeScript
 import React, { useState, useEffect } from 'react';
 
 function App() {
-  const [_c, _sc] = useState(100); // Sermaye [cite: 4]
-  const [_p, _sp] = useState(0);   // Üretim (Stok) [cite: 4]
-  const [_tp, _stp] = useState(0); // Toplam Üretim [cite: 4]
-  const [_ns, _sns] = useState([]); // Bildirimler [cite: 6]
+  const [_c, _sc] = useState(100); // Sermaye
+  const [_p, _sp] = useState(0);   // Üretim (Stok)
+  const [_tp, _stp] = useState(0); // Toplam Üretim
+  const [_ns, _sns] = useState([]); // Bildirimler
   
   const [_levels, _setLevels] = useState({
     clickPower: 1,
@@ -50,12 +46,12 @@ function App() {
   };
 
   const _se = async () => {
-    const message = `🚀 Endüstriyel İmparatorluk'ta $${_c.toLocaleString()} sermayeye ulaştım!`; [cite: 13]
-    if (navigator.share) { [cite: 14]
-      await navigator.share({ title: 'Skorum', text: message }).catch(() => {}); [cite: 14]
+    const message = `🚀 Endüstriyel İmparatorluk'ta $${_c.toLocaleString()} sermayeye ulaştım!`;
+    if (navigator.share) {
+      await navigator.share({ title: 'Skorum', text: message }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(message); [cite: 14]
-      _an("Kopyalandı!"); [cite: 15]
+      navigator.clipboard.writeText(message);
+      _an("Kopyalandı!");
     }
   };
 
@@ -90,7 +86,6 @@ function App() {
       <h3 style={{marginTop: '30px', color: '#9ca3af'}}>Yatırımlar & Strateji</h3>
       <div style={{ maxWidth: '700px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
         
-        {/* Tık Gücü */}
         <div style={upgradeContainer}>
           <button onClick={() => buyUpgrade('clickPower', 100)} style={upgBtn}>
             🚀 Tık Gücü (Lv {_levels.clickPower})<br/>
@@ -99,7 +94,6 @@ function App() {
           <p style={descText}>Her tıklamada kazandığın parayı artırır.</p>
         </div>
 
-        {/* Otomatik İşçi */}
         <div style={upgradeContainer}>
           <button onClick={() => buyUpgrade('autoWorker', 200)} style={upgBtn}>
             🤖 Otomatik İşçi (Lv {_levels.autoWorker})<br/>
@@ -108,7 +102,6 @@ function App() {
           <p style={descText}>Sen uyurken bile fabrikada üretim yapar.</p>
         </div>
 
-        {/* Pazarlama */}
         <div style={upgradeContainer}>
           <button onClick={() => buyUpgrade('marketing', 150)} style={upgBtn}>
             📈 Pazarlama (Lv {_levels.marketing})<br/>
@@ -117,7 +110,6 @@ function App() {
           <p style={descText}>Ürünlerin satış fiyatını kalıcı olarak yükseltir.</p>
         </div>
 
-        {/* Depo Büyüt */}
         <div style={upgradeContainer}>
           <button onClick={() => buyUpgrade('factorySize', 300)} style={upgBtn}>
             🏗️ Depo Büyüt (Lv {_levels.factorySize})<br/>
@@ -135,11 +127,10 @@ function App() {
   );
 }
 
-// --- Stiller ---
 const statBox = { background: '#1e1e24', padding: '15px', borderRadius: '10px', border: '1px solid #333', minWidth: '120px' };
 const mainBtn = { padding: '20px 40px', fontSize: '1.2rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', margin: '10px' };
 const shareBtn = { padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer' };
-const upgradeContainer = { display: 'flex', flexDirection: 'column' as const, alignItems: 'center' };
+const upgradeContainer = { display: 'flex', flexDirection: 'column', alignItems: 'center' };
 const upgBtn = { width: '100%', padding: '12px', background: '#1e1e24', color: 'white', border: '1px solid #444', borderRadius: '8px', cursor: 'pointer' };
 const descText = { fontSize: '0.75rem', color: '#9ca3af', marginTop: '5px', fontStyle: 'italic' };
 
