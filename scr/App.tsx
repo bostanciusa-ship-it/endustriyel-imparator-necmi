@@ -1,118 +1,130 @@
 import React, { useState, useEffect } from 'react';
 
 function App() {
-  // --- Durum Değişkenleri ---
-  const [_c, _sc] = useState(100); // Sermaye [cite: 1]
-  const [_p, _sp] = useState(0);   // Üretim [cite: 1]
-  const [_tp, _stp] = useState(0); // Toplam Üretim [cite: 2]
-  const [_ns, _sns] = useState([]); // Bildirimler [cite: 3]
+  const [_c, _sc] = useState(100); // Sermaye
+  const [_p, _sp] = useState(0);   // Üretim (Stok)
+  const [_tp, _stp] = useState(0); // Toplam Üretim
+  const [_ns, _sns] = useState([]); // Bildirimler
   
-  // Yükseltme Seviyeleri [cite: 2]
   const [_levels, _setLevels] = useState({
     clickPower: 1,
     autoWorker: 0,
-    marketing: 1
+    marketing: 1,
+    factorySize: 1 // Yeni: Depo Kapasitesi
   });
 
-  // --- Hesaplamalar ---
+  // --- Dinamik Hesaplamalar ---
   const clickGain = _levels.clickPower * 10;
-  const autoProduction = _levels.autoWorker * 1;
-  const salePrice = _levels.marketing * 5;
+  const autoProdRate = _levels.autoWorker * 0.5; // NERF: Otomatik işçiler artık daha yavaş (saniyede 0.5) 
+  const salePrice = 5 + (_levels.marketing * 2); // Satış fiyatı artık pazarlamaya bağlı 
+  const storageLimit = _levels.factorySize * 50; // Maksimum stok sınırı
 
-  // --- Fonksiyonlar ---
-  
   const _an = (msg) => {
     _sns(prev => [...prev.slice(-4), { id: Date.now(), text: msg }]);
   };
 
+  // Manuel Üretim
   const _hmp = () => {
-    _sp(prev => prev + 1);
-    _stp(prev => prev + 1);
-    _sc(prev => prev + clickGain);
-    _an(`Üretim yapıldı: +${clickGain}$`);
-  };
-
-  const buyUpgrade = (type, cost) => {
-    if (_c >= cost) {
-      _sc(prev => prev - cost);
-      _setLevels(prev => ({ ...prev, [type]: prev[type] + 1 }));
-      _an("Yükseltme Başarılı!");
+    if (_p < storageLimit) {
+      _sp(prev => prev + 1);
+      _stp(prev => prev + 1);
+      _sc(prev => prev + clickGain);
+      _an(`Üretim: +${clickGain}$`);
     } else {
-      _an("Yetersiz Sermaye!");
+      _an("DEPO DOLU! Satış yapılması lazım.");
     }
   };
 
-  // --- Oyun Döngüsü ---
+  // Yükseltme Satın Al [cite: 11, 12]
+  const buyUpgrade = (type, baseCost) => {
+    const cost = Math.floor(baseCost * Math.pow(1.5, _levels[type])); // Gittikçe pahalılaşan maliyet 
+    if (_c >= cost) {
+      _sc(prev => prev - cost);
+      _setLevels(prev => ({ ...prev, [type]: prev[type] + 1 }));
+      _an("Yükseltme alındı!");
+    } else {
+      _an("Yetersiz bakiye!");
+    }
+  };
+
+  // Skor Paylaşma 
+  const _se = async () => {
+    const message = `🚀 Endüstriyel İmparatorluk'ta $${_c.toLocaleString()} sermayeye ulaştım!`;
+    if (navigator.share) {
+      await navigator.share({ title: 'Skorum', text: message }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(message);
+      _an("Skor kopyalandı!");
+    }
+  };
+
+  // Oyun Döngüsü 
   useEffect(() => {
     const _t = setInterval(() => {
-      // Otomatik Üretim
-      if (autoProduction > 0) {
-        _sp(prev => prev + autoProduction);
-        _stp(prev => prev + autoProduction);
+      // Otomatik Üretim (Sınırlı)
+      if (autoProdRate > 0) {
+        _sp(prev => {
+          if (prev < storageLimit) return prev + autoProdRate;
+          return prev;
+        });
       }
       
-      // Otomatik Satış [cite: 15, 16]
+      // Otomatik Satış
       _sc(prev => {
         if (_p > 0) {
-          const sellAmount = Math.max(1, Math.floor(_levels.autoWorker / 2));
+          const sellAmount = 1; 
           _sp(p => Math.max(0, p - sellAmount));
-          return prev + (sellAmount * salePrice);
+          return prev + salePrice;
         }
         return prev;
       });
     }, 1000);
     return () => clearInterval(_t);
-  }, [_p, autoProduction, salePrice, _levels.autoWorker]);
+  }, [_p, autoProdRate, salePrice, storageLimit]);
 
   return (
-    <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: '#0a0a0c', minHeight: '100vh', fontFamily: 'Segoe UI, sans-serif' }}>
-      <h1 style={{ color: '#3b82f6', fontSize: '2.5rem', marginBottom: '10px' }}>Endüstriyel İmparatorluk v2</h1>
+    <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: '#0a0a0c', minHeight: '100vh', fontFamily: 'sans-serif' }}>
+      <h2 style={{ color: '#3b82f6' }}>Endüstriyel İmparatorluk v2.5</h2>
       
-      {/* İstatistik Paneli */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '30px' }}>
-        <div style={{ background: '#1e1e24', padding: '20px', borderRadius: '15px', border: '1px solid #3b82f6', minWidth: '150px' }}>
-          <div style={{ color: '#9ca3af', fontSize: '0.9rem' }}>SERMAYE</div>
-          <div style={{ color: '#4ade80', fontSize: '1.8rem', fontWeight: 'bold' }}>${_c.toLocaleString()}</div>
-        </div>
-        <div style={{ background: '#1e1e24', padding: '20px', borderRadius: '15px', border: '1px solid #fbbf24', minWidth: '150px' }}>
-          <div style={{ color: '#9ca3af', fontSize: '0.9rem' }}>STOKTAKİ ÜRÜN</div>
-          <div style={{ color: '#fbbf24', fontSize: '1.8rem', fontWeight: 'bold' }}>{_p}</div>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '20px' }}>
+        <div style={statBox}>Sermaye: <br/><span style={{color: '#4ade80'}}>${_c.toLocaleString()}</span></div>
+        <div style={statBox}>Stok: <br/><span style={{color: '#fbbf24'}}>{_p.toFixed(0)} / {storageLimit}</span></div>
       </div>
 
-      {/* Ana Aksiyon Butonu */}
-      <button onClick={_hmp} style={{ 
-        padding: '25px 50px', fontSize: '1.5rem', background: 'linear-gradient(45deg, #3b82f6, #2563eb)', 
-        color: 'white', border: 'none', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold',
-        boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)', marginBottom: '40px'
-      }}>
-        🏭 FABRİKAYI ÇALIŞTIR
-      </button>
+      <button onClick={_hmp} style={mainBtn}>🏭 FABRİKAYI ÇALIŞTIR</button>
+      <button onClick={_se} style={shareBtn}>🚀 PAYLAŞ</button>
 
-      {/* Market / Yükseltmeler Bölümü */}
-      <div style={{ maxWidth: '600px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-        <button onClick={() => buyUpgrade('clickPower', _levels.clickPower * 100)} style={upgradeButtonStyle}>
+      <h3 style={{marginTop: '30px', color: '#9ca3af'}}>Yatırımlar & Geliştirmeler</h3>
+      <div style={{ maxWidth: '600px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <button onClick={() => buyUpgrade('clickPower', 100)} style={upgBtn}>
           🚀 Tık Gücü (Lv {_levels.clickPower})<br/>
-          <small>Maliyet: ${_levels.clickPower * 100}</small>
+          <small>${Math.floor(100 * Math.pow(1.5, _levels.clickPower))}</small>
         </button>
-        <button onClick={() => buyUpgrade('autoWorker', (_levels.autoWorker + 1) * 200)} style={upgradeButtonStyle}>
+        <button onClick={() => buyUpgrade('autoWorker', 200)} style={upgBtn}>
           🤖 Otomatik İşçi (Lv {_levels.autoWorker})<br/>
-          <small>Maliyet: ${(_levels.autoWorker + 1) * 200}</small>
+          <small>${Math.floor(200 * Math.pow(1.5, _levels.autoWorker))}</small>
+        </button>
+        <button onClick={() => buyUpgrade('marketing', 150)} style={upgBtn}>
+          📈 Pazarlama (Lv {_levels.marketing})<br/>
+          <small>${Math.floor(150 * Math.pow(1.5, _levels.marketing))}</small>
+        </button>
+        <button onClick={() => buyUpgrade('factorySize', 300)} style={upgBtn}>
+          🏗️ Depo Büyüt (Lv {_levels.factorySize})<br/>
+          <small>${Math.floor(300 * Math.pow(1.5, _levels.factorySize))}</small>
         </button>
       </div>
 
-      {/* Bildirimler */}
-      <div style={{ marginTop: '40px', background: '#111116', padding: '15px', borderRadius: '10px', maxWidth: '400px', margin: '40px auto' }}>
-        <h4 style={{ margin: '0 0 10px 0', color: '#3b82f6' }}>Lojistik Kayıtları</h4>
-        {_ns.map(n => <div key={n.id} style={{ color: '#9ca3af', fontSize: '0.85rem', padding: '3px 0' }}>• {n.text}</div>)}
+      <div style={{ marginTop: '30px', color: '#6b7280', fontSize: '0.9rem' }}>
+        {_ns.map(n => <div key={n.id}>⚡ {n.text}</div>)}
       </div>
     </div>
   );
 }
 
-const upgradeButtonStyle = {
-  padding: '15px', background: '#1e1e24', color: 'white', border: '1px solid #374151',
-  borderRadius: '10px', cursor: 'pointer', textAlign: 'center', transition: '0.2s'
-};
+// --- Stiller ---
+const statBox = { background: '#1e1e24', padding: '15px', borderRadius: '10px', border: '1px solid #333', minWidth: '120px' };
+const mainBtn = { padding: '20px 40px', fontSize: '1.2rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', margin: '10px' };
+const shareBtn = { padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer' };
+const upgBtn = { padding: '12px', background: '#1e1e24', color: 'white', border: '1px solid #444', borderRadius: '8px', cursor: 'pointer' };
 
 export default App;
