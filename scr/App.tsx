@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 
 function App() {
-  const [_c, _sc] = useState(100); // Eldeki Para (Sermaye)
-  const [_p, _sp] = useState(0);   // Üretim (Stok)
-  const [_tp, _stp] = useState(0); // Toplam Üretim
-  const [_ns, _sns] = useState([]); // Bildirimler
+  const [_c, _sc] = useState(100); 
+  const [_p, _sp] = useState(0);   
+  const [_tp, _stp] = useState(0); 
+  const [_ns, _sns] = useState([]); 
+  const [_isTaxing, _setIsTaxing] = useState(false); 
   
+  // Nargile Borusu Durumları
+  const [_nargile, _setNargile] = useState(null); // { id: number, x: number, y: number }
+
   const [_levels, _setLevels] = useState({
     clickPower: 1,
     autoWorker: 0,
@@ -13,7 +17,7 @@ function App() {
     factorySize: 1 
   });
 
-  const playSound = (type: 'click' | 'upgrade' | 'tax') => {
+  const playSound = (type: 'click' | 'upgrade' | 'tax' | 'nargile') => {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const osc = ctx.createOscillator();
@@ -26,20 +30,26 @@ function App() {
         gain.gain.setValueAtTime(0.05, ctx.currentTime);
       } else if (type === 'tax') {
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, ctx.currentTime);
-        gain.gain.setValueAtTime(0.07, ctx.currentTime);
+        osc.frequency.setValueAtTime(120, ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      } else if (type === 'nargile') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(330, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
       } else {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(660, ctx.currentTime);
         gain.gain.setValueAtTime(0.03, ctx.currentTime);
       }
       osc.start();
-      osc.stop(ctx.currentTime + 0.15);
+      osc.stop(ctx.currentTime + 0.2);
     } catch (e) {}
   };
 
   const clickGain = _levels.clickPower * 10;
-  const autoProdRate = _levels.autoWorker * 0.1; 
+  const autoProdRate = _levels.autoWorker * 0.2; 
   const salePrice = 5 + (_levels.marketing * 3); 
   const storageLimit = _levels.factorySize * 30; 
 
@@ -51,10 +61,8 @@ function App() {
     if (_p < storageLimit) {
       const isBonus = Math.random() < 0.05;
       const finalGain = isBonus ? clickGain * 5 : clickGain;
-      
       playSound('click');
       if(isBonus) _an("MAVİ AKBİL BASILDI! x5 Kazanıldı!");
-      
       _sp(prev => prev + 1);
       _stp(prev => prev + 1);
       _sc(prev => prev + finalGain);
@@ -70,18 +78,31 @@ function App() {
       _sc(prev => prev - cost);
       _setLevels(prev => ({ ...prev, [type]: prev[type] + 1 }));
       
-      // MUZİPLİK: Paranın %5'ini alan Maliye Baskını
-      if (Math.random() < 0.10 && _c > 500) {
-        const currentMoney = _c - cost; // Satın alımdan sonra kalan para
+      if (Math.random() < 0.12 && _c > 500) {
+        _setIsTaxing(true);
+        setTimeout(() => _setIsTaxing(false), 800);
+        const currentMoney = _c - cost;
         const tax = Math.floor(currentMoney * 0.05);
         _sc(prev => prev - tax);
         playSound('tax');
-        _an(`🚨 MALİYE BASKINI! Cebindeki paranın %5'i (${tax}$) gitti!`);
+        _an(`🚨 paranın % 5 i hayır kurumlarına verildi (şüpheli )`);
       } else {
         _an("Geliştirme tamamlandı!");
       }
     } else {
       _an("Akbil yetersiz!!"); 
+    }
+  };
+
+  // Nargile Borusu Tıklama Fonksiyonu
+  const _handleNargileClick = () => {
+    if (_nargile) {
+      playSound('nargile');
+      // 50 ile 200 arasında rastgele para
+      const gained = Math.floor(Math.random() * (200 - 50 + 1)) + 50;
+      _sc(prev => prev + gained);
+      _an(`🌬️ Nargile Borusu! +${gained}$ köz getirildi!`);
+      _setNargile(null); // Tıklayınca kaybolsun
     }
   };
 
@@ -108,13 +129,40 @@ function App() {
         return prev;
       });
     }, 1000);
-    return () => clearInterval(_t);
+
+    // MUZİPLİK: Nargile Borusu Belirme Döngüsü
+    const _nargileInterval = setInterval(() => {
+      // %15 ihtimalle belirsin
+      if (Math.random() < 0.15) {
+        // Rastgele pozisyon (ekranın içinde kalacak şekilde)
+        const x = Math.random() * 80 + 10; // %10 ile %90 arası
+        const y = Math.random() * 80 + 10; // %10 ile %90 arası
+        const id = Date.now();
+        _setNargile({ id, x, y });
+
+        // 5 saniye sonra kaybolsun (eğer tıklanmazsa)
+        setTimeout(() => {
+            _setNargile(prev => prev?.id === id ? null : prev);
+        }, 5000);
+      }
+    }, 10000); // Her 10 saniyede bir kontrol et
+
+    return () => {
+        clearInterval(_t);
+        clearInterval(_nargileInterval);
+    };
   }, [_p, autoProdRate, salePrice, storageLimit]);
 
   return (
-    <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: '#0a0a0c', minHeight: '100vh', fontFamily: 'sans-serif' }}>
-      <h2 style={{ color: '#3b82f6' }}>
-        Endüstriyel İmparatorluk {_c > 10000 ? '💰👑' : 'v2.96'}
+    <div style={{ 
+      color: 'white', padding: '20px', textAlign: 'center', 
+      backgroundColor: _isTaxing ? '#2d0a0a' : '#0a0a0c', 
+      transition: 'background-color 0.3s ease',
+      minHeight: '100vh', fontFamily: 'sans-serif',
+      position: 'relative' // Nargile borusunu konumlandırmak için
+    }}>
+      <h2 style={{ color: _isTaxing ? '#ff4d4d' : '#3b82f6' }}>
+        Endüstriyel İmparatorluk {_c > 10000 ? '💰👑🌬️' : 'v2.99'}
       </h2>
       
       <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '20px' }}>
@@ -161,8 +209,43 @@ function App() {
       </div>
 
       <div style={{ marginTop: '30px', color: '#6b7280', fontSize: '0.8rem' }}>
-        {_ns.map(n => <div key={n.id}>⚡ {n.text}</div>)}
+        {_ns.map(n => <div key={n.id} style={{ color: n.text.includes('şüpheli') ? '#ff4d4d' : '#6b7280' }}>⚡ {n.text}</div>)}
       </div>
+
+      {/* MUZİPLİK: Nargile Borusu Görseli (CSS ile konumlandırma) */}
+      {_nargile && (
+          <div
+            onClick={_handleNargileClick}
+            style={{
+                position: 'absolute',
+                left: `${_nargile.x}%`,
+                top: `${_nargile.y}%`,
+                padding: '10px 15px',
+                backgroundColor: 'rgba(251, 191, 36, 0.9)', // Hafif şeffaf sarı
+                color: '#1a1a1a',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '0.9rem',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+                transition: 'transform 0.1s ease', // Tıklama efekti için
+                animation: 'pulse 1s infinite alternate', // Hafif parlama animasyonu
+            }}
+            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            🌬️ Nargile borusu
+          </div>
+      )}
+
+      {/* CSS Animasyonu (püskürtme efekti) */}
+      <style>{`
+        @keyframes pulse {
+            from { box-shadow: 0 0 5px rgba(251, 191, 36, 0.5); }
+            to { box-shadow: 0 0 15px rgba(251, 191, 36, 1); }
+        }
+      `}</style>
+
     </div>
   );
 }
