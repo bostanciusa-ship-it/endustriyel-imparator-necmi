@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// Gömülü Duba Fotoğrafı (Base64) - Link derdi yok
+// Gömülü Duba Fotoğrafı (Base64)
 const DUBA_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAABCCAYAAAAOq78DAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAIQSURBVGhD7ZmxSgNREEXXIKKgpYVpUuTf29rYWFvYWPgFNoKNhV9gYWFpYalgaWEp6Ofszm6yO8nuxmRhc88D97079+7O6yY77800GCHEYDBCiMFghBCD4R9CptNpfH1+p9NpUqXatvYatC37FpIkSRL/P98HhT9kYQ8yGo1O96u88Ics7EEMBiOEGKwqX8O4DAbDB6sa3OIn6xqcqurY7v6uBieUatvYtmVvW/b7vLqYyWQSX/X8Lp8X/pCHPUjX9Tf6fWf8IQt7EIPBCCEGgxFCDEYIMRiMEGAwGCHEYDAajBBiMBiMEGAwGCHEYDAajBBiMBghxGAwGCHEYDBCCDEYjBBisKp+D/GIn6xqcKqqY7v7uxqcUNuxbWzbSrcve9uy3+fVp6Gv18+LP2RhD9J13U99PzP+kIU9iMFghBCDwaq29mI97K6116Btrb2YyWQSv776G/288Ics7EG6rrtR3zvjD1nYgxgMRggxWKpU29Zeg7Zl30KSJEni/+/8UPhDFvYgo9Ho9PDy6/v9C/+vEPiEwCcEPiHwCYFPCHxC4BMCN7/AmZmfwCcEPiHwCYFPCHxC4BMCN78InxCCnxCCnxCCnxCCnxCCnxD4hMDnl8DPCN97vff6ePH9hMAvAZ8Q+ITAP4S8vL4S8AmBTwj6fVf8EAL/A4FfFfAJgc8fP/L90D6EEOIDVv8A69vMOf+p72wAAAAASUVORK5CYII=";
 
 function App() {
@@ -35,12 +35,10 @@ function App() {
   const spawnPlane = () => {
     if (_plane) return;
     _setPlane(true);
-    _an("✈️ Uçak geçiyor, holding dubası bırakıldı!");
-    
+    _an("✈️ Lojistik duba bırakıldı!");
     setTimeout(() => {
       _setDuba({ id: Date.now(), x: Math.random() * 60 + 20, y: Math.random() * 40 + 20 });
     }, 1500);
-
     setTimeout(() => {
       _setPlane(false);
       lastPlaneTime.current = Date.now();
@@ -50,8 +48,7 @@ function App() {
   const spawnNargile = () => {
     const id = Date.now();
     _setNargile({ id, x: Math.random() * 70 + 10, y: Math.random() * 60 + 10 });
-    _an("🌬️ Nargile belirdi! Közler taze!");
-    
+    _an("🌬️ Nargile masada!");
     setTimeout(() => {
         _setNargile(prev => prev?.id === id ? null : prev);
         lastNargileTime.current = Date.now();
@@ -67,9 +64,9 @@ function App() {
         _setIsTaxing(true);
         setTimeout(() => _setIsTaxing(false), 800);
         _sc(prev => prev - Math.floor(prev * 0.05));
-        _an(`🚨 Şüpheli transfer! %5 kesildi.`);
+        _an(`🚨 Kesinti yapıldı!`);
       } else {
-        _an("Yatırım yapıldı patron!");
+        _an("Yatırım yapıldı!");
       }
     } else {
       _an("KASA BOŞ!"); 
@@ -79,27 +76,20 @@ function App() {
   useEffect(() => {
     const mainTick = setInterval(() => {
       if (autoProdRate > 0) _sp(prev => (prev < storageLimit ? prev + autoProdRate : prev));
-      
       _sc(prev => {
         if (_p >= 1) { _sp(stok => stok - 1); return prev + salePrice; }
         return prev;
       });
-
       const now = Date.now();
-      if (now - lastNargileTime.current > 60000) {
-        if (!_nargile) spawnNargile();
-      }
-      if (now - lastPlaneTime.current > 90000) {
-        if (!_plane) spawnPlane();
-      }
+      if (now - lastNargileTime.current > 60000) { if (!_nargile) spawnNargile(); }
+      if (now - lastPlaneTime.current > 90000) { if (!_plane) spawnPlane(); }
     }, 1000);
-
     return () => clearInterval(mainTick);
   }, [_p, autoProdRate, salePrice, storageLimit, _nargile, _plane]);
 
   return (
     <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: _isTaxing ? '#2d0a0a' : '#0a0a0c', transition: 'background-color 0.3s ease', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
-      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding İşletme Merkezi v3.6.8</h2>
+      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding v3.6.9 🚧</h2>
       
       <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '20px' }}>
         <div style={statBox}>Kasa: <br/><span style={{color: '#4ade80'}}>${_c.toLocaleString()}</span></div>
@@ -110,36 +100,25 @@ function App() {
 
       {_plane && <div style={{ position: 'absolute', top: '15%', left: '-100px', fontSize: '3.5rem', animation: 'fly 4s linear forwards', zIndex: 100 }}>✈️</div>}
 
-      {/* --- DUBA BÖLÜMÜ (GÜNCELLENDİ) --- */}
+      {/* SADECE DUBA (YAZI VE KUTU YOK) */}
       {_duba && (
         <img 
           src={DUBA_BASE64} 
-          alt="" // Alt metni boş bıraktım ki yüklenmezse yazı gözükmesin
-          onClick={() => { _sc(prev => prev + 150); _setDuba(null); _an("🚧 +150$ Duba toplandı!"); }}
-          style={{ 
-            position: 'absolute', 
-            left: `${_duba.x}%`, 
-            top: `${_duba.y}%`, 
-            width: '65px', 
-            height: 'auto', 
-            cursor: 'pointer', 
-            zIndex: 101, 
-            animation: 'bob 2s infinite',
-            userSelect: 'none'
-          }} 
+          alt="" 
+          onClick={() => { _sc(prev => prev + 1); _setDuba(null); _an("🚧 +1$ Duba"); }}
+          style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, width: '65px', height: 'auto', cursor: 'pointer', zIndex: 101, animation: 'bob 2s infinite', userSelect: 'none' }} 
         />
       )}
 
       {_nargile && (
         <div 
-          onClick={() => { _sc(prev => prev + 500); _setNargile(null); _an("🌬️ Köz tazelendi! +500$"); }} 
+          onClick={() => { _sc(prev => prev + 200); _setNargile(null); _an("🌬️ +200$ Nargile"); }} 
           style={{ position: 'absolute', left: `${_nargile.x}%`, top: `${_nargile.y}%`, padding: '15px 25px', backgroundColor: '#fbbf24', color: '#1a1a1a', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 101, boxShadow: '0 0 25px #fbbf24', animation: 'pulse 1s infinite alternate' }}
         >
           🌬️ Nargile
         </div>
       )}
 
-      {/* PANEL */}
       <div style={{ maxWidth: '800px', margin: '30px auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         <button onClick={() => buyUpgrade('clickPower', 150)} style={upgBtn}>
           <div style={upgTitle}>🚀 Tık Gücü (Lv {_levels.clickPower})</div>
