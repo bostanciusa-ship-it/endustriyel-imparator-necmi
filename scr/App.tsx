@@ -1,12 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
+// Fotoğraf yine kodun içinde gömülü, patlama derdi yok
+const DUBA_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAABCCAYAAAAOq78DAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAIQSURBVGhD7ZmxSgNREEXXIKKgpYVpUuTf29rYWFvYWPgFNoKNhV9gYWFpYalgaWEp6Ofszm6yO8nuxmRhc88D97079+7O6yY77800GCHEYDBCiMFghBCD4R9CptNpfH1+p9NpUqXatvYatC37FpIkSRL/P98HhT9kYQ8yGo1O96u88Ics7EEMBiOEGKwqX8O4DAbDB6sa3OIn6xqcqurY7v6uBieUatvYtmVvW/b7vLqYyWQSX/X8Lp8X/pCHPUjX9Tf6fWf8IQt7EIPBCCEGgxFCDEYIMRiMEGAwGCHEYDAajBBiMBiMEGAwGCHEYDAajBBiMBghxGAwGCHEYDBCCDEYjBBisKp+D/GIn6xqcKqqY7v7uxqcUNuxbWzbSrcve9uy3+fVp6Gv18+LP2RhD9J13U99PzP+kIU9iMFghBCDwaq29mI97K6116Btrb2YyWQSv776G/288Ics7EG6rrtR3zvjD1nYgxgMRggxWKpU29Zeg7Zl30KSJEni/+/8UPhDFvYgo9Ho9PDy6/v9C/+vEPiEwCcEPiHwCYFPCHxC4BMCN7/AmZmfwCcEPiHwCYFPCHxC4BMCN78InxCCnxCCnxCCnxCCnxCCnxD4hMDnl8DPCN97vff6ePH9hMAvAZ8Q+ITAP4S8vL4S8AmBTwj6fVf8EAL/A4FfFfAJgc8fP/L90D6EEOIDVv8A69vMOf+p72wAAAAASUVORK5CYII=";
 
 function App() {
   const [_c, _sc] = useState(100); 
   const [_p, _sp] = useState(0);   
-  const [_tp, _stp] = useState(0); 
-  const [_ns, _sns] = useState([]); 
+  const [_ns, _sns] = useState<{id: number, text: string}[]>([]); 
   const [_isTaxing, _setIsTaxing] = useState(false); 
   const [_nargile, _setNargile] = useState<{id: number, x: number, y: number} | null>(null);
+  const [_plane, _setPlane] = useState(false); 
+  const [_duba, _setDuba] = useState<{id: number, x: number, y: number} | null>(null);
+
+  const lastNargileTime = useRef(Date.now());
+  const lastPlaneTime = useRef(Date.now());
 
   const [_levels, _setLevels] = useState({
     clickPower: 1,
@@ -15,37 +22,9 @@ function App() {
     factorySize: 1 
   });
 
-  const playSound = (type: 'click' | 'upgrade' | 'tax' | 'nargile') => {
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      if (type === 'click') {
-        osc.frequency.setValueAtTime(440, ctx.currentTime);
-        gain.gain.setValueAtTime(0.05, ctx.currentTime);
-      } else if (type === 'tax') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(120, ctx.currentTime);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      } else if (type === 'nargile') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(330, ctx.currentTime);
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      } else {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(660, ctx.currentTime);
-        gain.gain.setValueAtTime(0.03, ctx.currentTime);
-      }
-      osc.start();
-      osc.stop(ctx.currentTime + 0.2);
-    } catch (e) {}
-  };
-
+  const getCost = (type: keyof typeof _levels, base: number) => Math.floor(base * Math.pow(2.5, _levels[type]));
   const clickGain = _levels.clickPower * 10;
-  const autoProdRate = _levels.autoWorker * 0.2; // Patronun emriyle 0.2 yapıldı
+  const autoProdRate = _levels.autoWorker * 0.2; 
   const salePrice = 5 + (_levels.marketing * 3); 
   const storageLimit = _levels.factorySize * 30; 
 
@@ -53,170 +32,129 @@ function App() {
     _sns(prev => [...prev.slice(-3), { id: Date.now(), text: msg }]);
   };
 
-  const _hmp = () => {
-    if (_p < storageLimit) {
-      const isBonus = Math.random() < 0.05;
-      const finalGain = isBonus ? clickGain * 5 : clickGain;
-      playSound('click');
-      if(isBonus) _an("MAVİ AKBİL BASILDI! x5 Kazanıldı!");
-      _sp(prev => prev + 1);
-      _stp(prev => prev + 1);
-      _sc(prev => prev + finalGain);
-    } else {
-      _an("DEPO DOLU!");
-    }
+  const spawnPlane = () => {
+    _setPlane(true);
+    _an("✈️ Uçak geçiyor, duba bırakıldı!");
+    setTimeout(() => {
+      _setDuba({ id: Date.now(), x: Math.random() * 70 + 15, y: Math.random() * 60 + 20 });
+    }, 1500);
+    setTimeout(() => _setPlane(false), 4000);
+    lastPlaneTime.current = Date.now();
+  };
+
+  const spawnNargile = () => {
+    const id = Date.now();
+    _setNargile({ id, x: Math.random() * 80 + 10, y: Math.random() * 80 + 10 });
+    lastNargileTime.current = Date.now();
+    setTimeout(() => _setNargile(prev => prev?.id === id ? null : prev), 5000);
   };
 
   const buyUpgrade = (type: keyof typeof _levels, baseCost: number) => {
-    const cost = Math.floor(baseCost * Math.pow(2.5, _levels[type]));
+    const cost = getCost(type, baseCost);
     if (_c >= cost) {
-      playSound('upgrade');
       _sc(prev => prev - cost);
       _setLevels(prev => ({ ...prev, [type]: prev[type] + 1 }));
-      
       if (Math.random() < 0.12 && _c > 500) {
         _setIsTaxing(true);
         setTimeout(() => _setIsTaxing(false), 800);
-        const currentMoney = _c - cost;
-        const tax = Math.floor(currentMoney * 0.05);
-        _sc(prev => prev - tax);
-        playSound('tax');
-        _an(`🚨 paranın % 5 i hayır kurumlarına verildi (şüpheli )`);
+        _sc(prev => prev - Math.floor(prev * 0.05));
+        _an(`🚨 Şüpheli transfer! %5 kesildi.`);
       } else {
-        _an("Geliştirme tamamlandı!");
+        _an("Yatırım yapıldı!");
       }
     } else {
-      _an("Akbil yetersiz!!"); 
-    }
-  };
-
-  const _handleNargileClick = () => {
-    if (_nargile) {
-      playSound('nargile');
-      const gained = Math.floor(Math.random() * (200 - 50 + 1)) + 50;
-      _sc(prev => prev + gained);
-      _an(`🌬️ Nargile Borusu! +${gained}$ köz getirildi!`);
-      _setNargile(null);
+      _an("KASA BOŞ!"); 
     }
   };
 
   useEffect(() => {
     const _t = setInterval(() => {
-      if (autoProdRate > 0) {
-        _sp(prev => (prev < storageLimit ? prev + autoProdRate : prev));
-      }
+      if (autoProdRate > 0) _sp(prev => (prev < storageLimit ? prev + autoProdRate : prev));
       _sc(prev => {
-        if (_p >= 1) {
-          _sp(p => p - 1);
-          return prev + salePrice;
-        }
+        if (_p >= 1) { _sp(p => p - 1); return prev + salePrice; }
         return prev;
       });
+      if (Date.now() - lastNargileTime.current > 60000) spawnNargile();
+      if (Date.now() - lastPlaneTime.current > 120000) spawnPlane();
     }, 1000);
-
-    const _nargileInterval = setInterval(() => {
-      if (Math.random() < 0.15) {
-        const x = Math.random() * 80 + 10;
-        const y = Math.random() * 80 + 10;
-        const id = Date.now();
-        _setNargile({ id, x, y });
-        setTimeout(() => {
-            _setNargile(prev => prev?.id === id ? null : prev);
-        }, 5000);
-      }
-    }, 10000);
-
-    return () => {
-        clearInterval(_t);
-        clearInterval(_nargileInterval);
-    };
+    return () => clearInterval(_t);
   }, [_p, autoProdRate, salePrice, storageLimit]);
 
   return (
-    <div style={{ 
-      color: 'white', padding: '20px', textAlign: 'center', 
-      backgroundColor: _isTaxing ? '#2d0a0a' : '#0a0a0c', 
-      transition: 'background-color 0.3s ease',
-      minHeight: '100vh', fontFamily: 'sans-serif',
-      position: 'relative', overflow: 'hidden'
-    }}>
-      <h2 style={{ color: _isTaxing ? '#ff4d4d' : '#3b82f6' }}>
-        Endüstriyel İmparatorluk {_c > 10000 ? '💰👑🌬️' : 'v3.0'}
-      </h2>
+    <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: _isTaxing ? '#2d0a0a' : '#0a0a0c', transition: 'background-color 0.3s ease', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding İşletme Merkezi v3.6.6</h2>
       
       <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '20px' }}>
-        <div style={statBox}>Cepteki Para: <br/><span style={{color: '#4ade80'}}>${_c.toLocaleString()}</span></div>
+        <div style={statBox}>Kasa: <br/><span style={{color: '#4ade80'}}>${_c.toLocaleString()}</span></div>
         <div style={statBox}>Stok: <br/><span style={{color: '#fbbf24'}}>{_p.toFixed(1)} / {storageLimit}</span></div>
       </div>
 
-      <button onClick={_hmp} style={mainBtn}>🏭 FABRİKAYI ÇALIŞTIR</button>
+      <button onClick={() => { if (_p < storageLimit) { _sc(prev => prev + clickGain); _sp(prev => prev + 1); } }} style={mainBtn}>🏭 FABRİKAYI ÇALIŞTIR</button>
 
-      <h3 style={{marginTop: '30px', color: '#9ca3af'}}>Yatırımlar</h3>
-      <div style={{ maxWidth: '700px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-        <div style={upgradeContainer}>
-          <button onClick={() => buyUpgrade('clickPower', 150)} style={upgBtn}>
-            🚀 Tık Gücü<br/>
-            <small>${Math.floor(150 * Math.pow(2.5, _levels.clickPower))}</small>
-          </button>
-        </div>
+      {_plane && <div style={{ position: 'absolute', top: '10%', left: '-100px', fontSize: '3rem', animation: 'fly 4s linear forwards', zIndex: 50 }}>✈️</div>}
 
-        <div style={upgradeContainer}>
-          <button onClick={() => buyUpgrade('autoWorker', 600)} style={upgBtn}>
-            🤖 İşçi (Lv {_levels.autoWorker})<br/>
-            <small>${Math.floor(600 * Math.pow(2.5, _levels.autoWorker))}</small>
-          </button>
-          <p style={descText}>çok yavaş bir köle</p>
-        </div>
-
-        <div style={upgradeContainer}>
-          <button onClick={() => buyUpgrade('marketing', 200)} style={upgBtn}>
-            📈 Pazarlama<br/>
-            <small>${Math.floor(200 * Math.pow(2.5, _levels.marketing))}</small>
-          </button>
-        </div>
-
-        <div style={upgradeContainer}>
-          <button onClick={() => buyUpgrade('factorySize', 400)} style={upgBtn}>
-            🏗️ Depo Büyüt<br/>
-            <small>${Math.floor(400 * Math.pow(2.5, _levels.factorySize))}</small>
-          </button>
-        </div>
-      </div>
-
-      <div style={{ marginTop: '30px', color: '#6b7280', fontSize: '0.8rem' }}>
-        {_ns.map(n => <div key={n.id} style={{ color: n.text.includes('şüpheli') ? '#ff4d4d' : '#6b7280' }}>⚡ {n.text}</div>)}
-      </div>
-
-      {_nargile && (
-          <div
-            onClick={_handleNargileClick}
-            style={{
-                position: 'absolute',
-                left: `${_nargile.x}%`,
-                top: `${_nargile.y}%`,
-                padding: '10px 15px',
-                backgroundColor: '#fbbf24',
-                color: '#1a1a1a',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                animation: 'pulse 1s infinite alternate',
-                zIndex: 100
-            }}
-          >
-            🌬️ Nargile borusu
-          </div>
+      {_duba && (
+        <img 
+          src={DUBA_BASE64} 
+          alt="Koni"
+          onClick={() => { _sc(prev => prev + 1); _setDuba(null); _an("🚧 +1$ Koni toplandı."); }}
+          style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, width: '60px', height: 'auto', cursor: 'pointer', zIndex: 60, animation: 'bob 2s infinite' }} 
+        />
       )}
 
-      <style>{`@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }`}</style>
+      {_nargile && <div onClick={() => { _sc(prev => prev + 150); _setNargile(null); }} style={{ position: 'absolute', left: `${_nargile.x}%`, top: `${_nargile.y}%`, padding: '10px 20px', backgroundColor: '#fbbf24', color: '#1a1a1a', borderRadius: '30px', cursor: 'pointer', fontWeight: 'bold', animation: 'pulse 1s infinite alternate' }}>🌬️ Nargile</div>}
+
+      {/* YÜKSELTME BÖLÜMÜ - ALT ALTA DÜZENLENDİ */}
+      <div style={{ maxWidth: '800px', margin: '30px auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        
+        <button onClick={() => buyUpgrade('clickPower', 150)} style={upgBtn}>
+          <div style={upgTitle}>🚀 Tık Gücü (Lv {_levels.clickPower})</div>
+          <div style={upgDesc}>daha sert bas</div>
+          <div style={upgPrice}>Fiyat: ${getCost('clickPower', 150).toLocaleString()}</div>
+        </button>
+
+        <button onClick={() => buyUpgrade('autoWorker', 600)} style={upgBtn}>
+          <div style={upgTitle}>🤖 İşçi (Lv {_levels.autoWorker})</div>
+          <div style={upgDesc}>çok yavaş bir köle</div>
+          <div style={upgPrice}>Fiyat: ${getCost('autoWorker', 600).toLocaleString()}</div>
+        </button>
+
+        <button onClick={() => buyUpgrade('marketing', 200)} style={upgBtn}>
+          <div style={upgTitle}>📈 Pazarlama (Lv {_levels.marketing})</div>
+          <div style={upgDesc}>yalan söylemeyi öğren</div>
+          <div style={upgPrice}>Fiyat: ${getCost('marketing', 200).toLocaleString()}</div>
+        </button>
+
+        <button onClick={() => buyUpgrade('factorySize', 400)} style={upgBtn}>
+          <div style={upgTitle}>🏗️ Depo (Lv {_levels.factorySize})</div>
+          <div style={upgDesc}>yer aç patron</div>
+          <div style={upgPrice}>Fiyat: ${getCost('factorySize', 400).toLocaleString()}</div>
+        </button>
+
+      </div>
+
+      <div style={{ marginTop: '20px', color: '#6b7280', fontSize: '0.8rem' }}>
+        {_ns.map(n => <div key={n.id}>⚡ {n.text}</div>)}
+      </div>
+
+      <style>{`
+        @keyframes fly { from { left: -15%; } to { left: 115%; } }
+        @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+      `}</style>
     </div>
   );
 }
 
-const statBox = { background: '#1e1e24', padding: '15px', borderRadius: '10px', border: '1px solid #333', minWidth: '120px' };
-const mainBtn = { padding: '20px 40px', fontSize: '1.2rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', margin: '10px' };
-const upgradeContainer = { display: 'flex', flexDirection: 'column' as any, alignItems: 'center' };
-const upgBtn = { width: '100%', padding: '12px', background: '#1e1e24', color: 'white', border: '1px solid #444', borderRadius: '8px', cursor: 'pointer' };
-const descText = { fontSize: '0.75rem', color: '#9ca3af', marginTop: '5px', fontStyle: 'italic' };
+// STİLLER
+const statBox = { background: '#1e1e24', padding: '15px', borderRadius: '10px', minWidth: '130px', border: '1px solid #333' };
+const mainBtn = { padding: '25px 50px', fontSize: '1.4rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold' };
+const upgBtn = { 
+  display: 'flex', flexDirection: 'column' as any, alignItems: 'center', justifyContent: 'center',
+  padding: '15px', background: '#1e1e24', color: 'white', border: '1px solid #444', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s'
+};
+const upgTitle = { fontWeight: 'bold', fontSize: '1rem', marginBottom: '4px' };
+const upgDesc = { fontSize: '0.75rem', color: '#9ca3af', fontStyle: 'italic', marginBottom: '8px' };
+const upgPrice = { color: '#4ade80', fontWeight: 'bold', fontSize: '0.9rem' };
 
 export default App;
