@@ -48,7 +48,7 @@ function App() {
   const spawnNargile = () => {
     const id = Date.now();
     _setNargile({ id, x: Math.random() * 70 + 10, y: Math.random() * 60 + 10 });
-    _an("🌬️ Nargile masada!");
+    _an("🌬️ Nargile Borusu masada!");
     setTimeout(() => {
         _setNargile(prev => prev?.id === id ? null : prev);
         lastNargileTime.current = Date.now();
@@ -89,7 +89,7 @@ function App() {
 
   return (
     <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: _isTaxing ? '#2d0a0a' : '#0a0a0c', transition: 'background-color 0.3s ease', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
-      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding v3.6.9 🚧</h2>
+      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding v3.7.0 🚧</h2>
       
       <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '20px' }}>
         <div style={statBox}>Kasa: <br/><span style={{color: '#4ade80'}}>${_c.toLocaleString()}</span></div>
@@ -100,7 +100,7 @@ function App() {
 
       {_plane && <div style={{ position: 'absolute', top: '15%', left: '-100px', fontSize: '3.5rem', animation: 'fly 4s linear forwards', zIndex: 100 }}>✈️</div>}
 
-      {/* SADECE DUBA (YAZI VE KUTU YOK) */}
+      {/* SADECE DUBA */}
       {_duba && (
         <img 
           src={DUBA_BASE64} 
@@ -110,12 +110,13 @@ function App() {
         />
       )}
 
+      {/* NARGİLE BORUSU - $200 VERİR */}
       {_nargile && (
         <div 
-          onClick={() => { _sc(prev => prev + 200); _setNargile(null); _an("🌬️ +200$ Nargile"); }} 
+          onClick={() => { _sc(prev => prev + 200); _setNargile(null); _an("🌬️ +200$ Nargile Borusu"); }} 
           style={{ position: 'absolute', left: `${_nargile.x}%`, top: `${_nargile.y}%`, padding: '15px 25px', backgroundColor: '#fbbf24', color: '#1a1a1a', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 101, boxShadow: '0 0 25px #fbbf24', animation: 'pulse 1s infinite alternate' }}
         >
-          🌬️ Nargile
+          🌬️ Nargile Borusu
         </div>
       )}
 
