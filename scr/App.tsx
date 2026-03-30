@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// Fotoğraf yine kodun içinde gömülü, patlama derdi yok
+// Gömülü Duba Fotoğrafı
 const DUBA_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAABCCAYAAAAOq78DAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAIQSURBVGhD7ZmxSgNREEXXIKKgpYVpUuTf29rYWFvYWPgFNoKNhV9gYWFpYalgaWEp6Ofszm6yO8nuxmRhc88D97079+7O6yY77800GCHEYDBCiMFghBCD4R9CptNpfH1+p9NpUqXatvYatC37FpIkSRL/P98HhT9kYQ8yGo1O96u88Ics7EEMBiOEGKwqX8O4DAbDB6sa3OIn6xqcqurY7v6uBieUatvYtmVvW/b7vLqYyWQSX/X8Lp8X/pCHPUjX9Tf6fWf8IQt7EIPBCCEGgxFCDEYIMRiMEGAwGCHEYDAajBBiMBiMEGAwGCHEYDAajBBiMBghxGAwGCHEYDBCCDEYjBBisKp+D/GIn6xqcKqqY7v7uxqcUNuxbWzbSrcve9uy3+fVp6Gv18+LP2RhD9J13U99PzP+kIU9iMFghBCDwaq29mI97K6116Btrb2YyWQSv776G/288Ics7EG6rrtR3zvjD1nYgxgMRggxWKpU29Zeg7Zl30KSJEni/+/8UPhDFvYgo9Ho9PDy6/v9C/+vEPiEwCcEPiHwCYFPCHxC4BMCN7/AmZmfwCcEPiHwCYFPCHxC4BMCN78InxCCnxCCnxCCnxCCnxCCnxD4hMDnl8DPCN97vff6ePH9hMAvAZ8Q+ITAP4S8vL4S8AmBTwj6fVf8EAL/A4FfFfAJgc8fP/L90D6EEOIDVv8A69vMOf+p72wAAAAASUVORK5CYII=";
 
 function App() {
@@ -33,20 +33,29 @@ function App() {
   };
 
   const spawnPlane = () => {
+    if (_plane) return; // Zaten uçuyorsa tekrar çıkarma
     _setPlane(true);
     _an("✈️ Uçak geçiyor, duba bırakıldı!");
+    
     setTimeout(() => {
-      _setDuba({ id: Date.now(), x: Math.random() * 70 + 15, y: Math.random() * 60 + 20 });
+      _setDuba({ id: Date.now(), x: Math.random() * 60 + 20, y: Math.random() * 40 + 20 });
     }, 1500);
-    setTimeout(() => _setPlane(false), 4000);
-    lastPlaneTime.current = Date.now();
+
+    setTimeout(() => {
+      _setPlane(false);
+      lastPlaneTime.current = Date.now();
+    }, 4000);
   };
 
   const spawnNargile = () => {
     const id = Date.now();
-    _setNargile({ id, x: Math.random() * 80 + 10, y: Math.random() * 80 + 10 });
-    lastNargileTime.current = Date.now();
-    setTimeout(() => _setNargile(prev => prev?.id === id ? null : prev), 5000);
+    _setNargile({ id, x: Math.random() * 70 + 10, y: Math.random() * 60 + 10 });
+    _an("🌬️ Nargile borusu belirdi! Köz getirildi!");
+    
+    setTimeout(() => {
+        _setNargile(prev => prev?.id === id ? null : prev);
+        lastNargileTime.current = Date.now();
+    }, 8000); // 8 saniye ekranda kalır
   };
 
   const buyUpgrade = (type: keyof typeof _levels, baseCost: number) => {
@@ -68,21 +77,42 @@ function App() {
   };
 
   useEffect(() => {
-    const _t = setInterval(() => {
-      if (autoProdRate > 0) _sp(prev => (prev < storageLimit ? prev + autoProdRate : prev));
+    const mainTick = setInterval(() => {
+      // Otomatik üretim
+      if (autoProdRate > 0) {
+        _sp(prev => (prev < storageLimit ? prev + autoProdRate : prev));
+      }
+      
+      // Otomatik satış
       _sc(prev => {
-        if (_p >= 1) { _sp(p => p - 1); return prev + salePrice; }
+        if (_p >= 1) { 
+          _sp(stok => stok - 1); 
+          return prev + salePrice; 
+        }
         return prev;
       });
-      if (Date.now() - lastNargileTime.current > 60000) spawnNargile();
-      if (Date.now() - lastPlaneTime.current > 120000) spawnPlane();
+
+      // Zamanlayıcı Kontrolleri (Her saniye kontrol eder)
+      const now = Date.now();
+      
+      // Nargile: Dakikada bir kesin, %10 şansla her 10 saniyede bir
+      if (now - lastNargileTime.current > 60000 || (Math.random() < 0.01)) {
+        if (!_nargile) spawnNargile();
+      }
+
+      // Uçak: 90 saniyede bir kesin
+      if (now - lastPlaneTime.current > 90000) {
+        if (!_plane) spawnPlane();
+      }
+
     }, 1000);
-    return () => clearInterval(_t);
-  }, [_p, autoProdRate, salePrice, storageLimit]);
+
+    return () => clearInterval(mainTick);
+  }, [_p, autoProdRate, salePrice, storageLimit, _nargile, _plane]);
 
   return (
     <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: _isTaxing ? '#2d0a0a' : '#0a0a0c', transition: 'background-color 0.3s ease', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
-      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding İşletme Merkezi v3.6.6</h2>
+      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding İşletme Merkezi v3.6.7</h2>
       
       <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '20px' }}>
         <div style={statBox}>Kasa: <br/><span style={{color: '#4ade80'}}>${_c.toLocaleString()}</span></div>
@@ -91,46 +121,51 @@ function App() {
 
       <button onClick={() => { if (_p < storageLimit) { _sc(prev => prev + clickGain); _sp(prev => prev + 1); } }} style={mainBtn}>🏭 FABRİKAYI ÇALIŞTIR</button>
 
-      {_plane && <div style={{ position: 'absolute', top: '10%', left: '-100px', fontSize: '3rem', animation: 'fly 4s linear forwards', zIndex: 50 }}>✈️</div>}
+      {/* UÇAK ANİMASYONU */}
+      {_plane && <div style={{ position: 'absolute', top: '15%', left: '-100px', fontSize: '3.5rem', animation: 'fly 4s linear forwards', zIndex: 100 }}>✈️</div>}
 
+      {/* DUBA (KONİ) */}
       {_duba && (
         <img 
           src={DUBA_BASE64} 
           alt="Koni"
-          onClick={() => { _sc(prev => prev + 1); _setDuba(null); _an("🚧 +1$ Koni toplandı."); }}
-          style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, width: '60px', height: 'auto', cursor: 'pointer', zIndex: 60, animation: 'bob 2s infinite' }} 
+          onClick={() => { _sc(prev => prev + 150); _setDuba(null); _an("🚧 +150$ Lojistik duba toplandı!"); }}
+          style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, width: '70px', height: 'auto', cursor: 'pointer', zIndex: 101, animation: 'bob 2s infinite' }} 
         />
       )}
 
-      {_nargile && <div onClick={() => { _sc(prev => prev + 150); _setNargile(null); }} style={{ position: 'absolute', left: `${_nargile.x}%`, top: `${_nargile.y}%`, padding: '10px 20px', backgroundColor: '#fbbf24', color: '#1a1a1a', borderRadius: '30px', cursor: 'pointer', fontWeight: 'bold', animation: 'pulse 1s infinite alternate' }}>🌬️ Nargile</div>}
+      {/* NARGİLE BORUSU */}
+      {_nargile && (
+        <div 
+          onClick={() => { _sc(prev => prev + 500); _setNargile(null); _an("🌬️ Köz tazelendi! +500$"); }} 
+          style={{ position: 'absolute', left: `${_nargile.x}%`, top: `${_nargile.y}%`, padding: '15px 25px', backgroundColor: '#fbbf24', color: '#1a1a1a', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 101, boxShadow: '0 0 25px #fbbf24', animation: 'pulse 1s infinite alternate' }}
+        >
+          🌬️ Nargile Borusu
+        </div>
+      )}
 
-      {/* YÜKSELTME BÖLÜMÜ - ALT ALTA DÜZENLENDİ */}
+      {/* PANEL */}
       <div style={{ maxWidth: '800px', margin: '30px auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-        
         <button onClick={() => buyUpgrade('clickPower', 150)} style={upgBtn}>
           <div style={upgTitle}>🚀 Tık Gücü (Lv {_levels.clickPower})</div>
           <div style={upgDesc}>daha sert bas</div>
           <div style={upgPrice}>Fiyat: ${getCost('clickPower', 150).toLocaleString()}</div>
         </button>
-
         <button onClick={() => buyUpgrade('autoWorker', 600)} style={upgBtn}>
           <div style={upgTitle}>🤖 İşçi (Lv {_levels.autoWorker})</div>
           <div style={upgDesc}>çok yavaş bir köle</div>
           <div style={upgPrice}>Fiyat: ${getCost('autoWorker', 600).toLocaleString()}</div>
         </button>
-
         <button onClick={() => buyUpgrade('marketing', 200)} style={upgBtn}>
           <div style={upgTitle}>📈 Pazarlama (Lv {_levels.marketing})</div>
           <div style={upgDesc}>yalan söylemeyi öğren</div>
           <div style={upgPrice}>Fiyat: ${getCost('marketing', 200).toLocaleString()}</div>
         </button>
-
         <button onClick={() => buyUpgrade('factorySize', 400)} style={upgBtn}>
           <div style={upgTitle}>🏗️ Depo (Lv {_levels.factorySize})</div>
           <div style={upgDesc}>yer aç patron</div>
           <div style={upgPrice}>Fiyat: ${getCost('factorySize', 400).toLocaleString()}</div>
         </button>
-
       </div>
 
       <div style={{ marginTop: '20px', color: '#6b7280', fontSize: '0.8rem' }}>
@@ -138,21 +173,17 @@ function App() {
       </div>
 
       <style>{`
-        @keyframes fly { from { left: -15%; } to { left: 115%; } }
-        @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        @keyframes fly { from { left: -20%; } to { left: 120%; } }
+        @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
         @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
       `}</style>
     </div>
   );
 }
 
-// STİLLER
 const statBox = { background: '#1e1e24', padding: '15px', borderRadius: '10px', minWidth: '130px', border: '1px solid #333' };
-const mainBtn = { padding: '25px 50px', fontSize: '1.4rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold' };
-const upgBtn = { 
-  display: 'flex', flexDirection: 'column' as any, alignItems: 'center', justifyContent: 'center',
-  padding: '15px', background: '#1e1e24', color: 'white', border: '1px solid #444', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s'
-};
+const mainBtn = { padding: '25px 50px', fontSize: '1.4rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '20px' };
+const upgBtn = { display: 'flex', flexDirection: 'column' as any, alignItems: 'center', justifyContent: 'center', padding: '15px', background: '#1e1e24', color: 'white', border: '1px solid #444', borderRadius: '12px', cursor: 'pointer' };
 const upgTitle = { fontWeight: 'bold', fontSize: '1rem', marginBottom: '4px' };
 const upgDesc = { fontSize: '0.75rem', color: '#9ca3af', fontStyle: 'italic', marginBottom: '8px' };
 const upgPrice = { color: '#4ade80', fontWeight: 'bold', fontSize: '0.9rem' };
