@@ -6,9 +6,7 @@ function App() {
   const [_tp, _stp] = useState(0); 
   const [_ns, _sns] = useState([]); 
   const [_isTaxing, _setIsTaxing] = useState(false); 
-  
-  // Nargile Borusu Durumları
-  const [_nargile, _setNargile] = useState(null); // { id: number, x: number, y: number }
+  const [_nargile, _setNargile] = useState<{id: number, x: number, y: number} | null>(null);
 
   const [_levels, _setLevels] = useState({
     clickPower: 1,
@@ -35,9 +33,7 @@ function App() {
       } else if (type === 'nargile') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(330, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.1);
         gain.gain.setValueAtTime(0.08, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
       } else {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(660, ctx.currentTime);
@@ -49,7 +45,7 @@ function App() {
   };
 
   const clickGain = _levels.clickPower * 10;
-  const autoProdRate = _levels.autoWorker * 0.2; 
+  const autoProdRate = _levels.autoWorker * 0.2; // Patronun emriyle 0.2 yapıldı
   const salePrice = 5 + (_levels.marketing * 3); 
   const storageLimit = _levels.factorySize * 30; 
 
@@ -94,25 +90,13 @@ function App() {
     }
   };
 
-  // Nargile Borusu Tıklama Fonksiyonu
   const _handleNargileClick = () => {
     if (_nargile) {
       playSound('nargile');
-      // 50 ile 200 arasında rastgele para
       const gained = Math.floor(Math.random() * (200 - 50 + 1)) + 50;
       _sc(prev => prev + gained);
       _an(`🌬️ Nargile Borusu! +${gained}$ köz getirildi!`);
-      _setNargile(null); // Tıklayınca kaybolsun
-    }
-  };
-
-  const _se = async () => {
-    const message = `🚀 Endüstriyel İmparatorluk'ta $${_c.toLocaleString()} sermayeye ulaştım!`;
-    if (navigator.share) {
-      await navigator.share({ title: 'Skorum', text: message }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(message);
-      _an("Kopyalandı!");
+      _setNargile(null);
     }
   };
 
@@ -130,22 +114,17 @@ function App() {
       });
     }, 1000);
 
-    // MUZİPLİK: Nargile Borusu Belirme Döngüsü
     const _nargileInterval = setInterval(() => {
-      // %15 ihtimalle belirsin
       if (Math.random() < 0.15) {
-        // Rastgele pozisyon (ekranın içinde kalacak şekilde)
-        const x = Math.random() * 80 + 10; // %10 ile %90 arası
-        const y = Math.random() * 80 + 10; // %10 ile %90 arası
+        const x = Math.random() * 80 + 10;
+        const y = Math.random() * 80 + 10;
         const id = Date.now();
         _setNargile({ id, x, y });
-
-        // 5 saniye sonra kaybolsun (eğer tıklanmazsa)
         setTimeout(() => {
             _setNargile(prev => prev?.id === id ? null : prev);
         }, 5000);
       }
-    }, 10000); // Her 10 saniyede bir kontrol et
+    }, 10000);
 
     return () => {
         clearInterval(_t);
@@ -159,10 +138,10 @@ function App() {
       backgroundColor: _isTaxing ? '#2d0a0a' : '#0a0a0c', 
       transition: 'background-color 0.3s ease',
       minHeight: '100vh', fontFamily: 'sans-serif',
-      position: 'relative' // Nargile borusunu konumlandırmak için
+      position: 'relative', overflow: 'hidden'
     }}>
       <h2 style={{ color: _isTaxing ? '#ff4d4d' : '#3b82f6' }}>
-        Endüstriyel İmparatorluk {_c > 10000 ? '💰👑🌬️' : 'v2.99'}
+        Endüstriyel İmparatorluk {_c > 10000 ? '💰👑🌬️' : 'v3.0'}
       </h2>
       
       <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '20px' }}>
@@ -171,21 +150,19 @@ function App() {
       </div>
 
       <button onClick={_hmp} style={mainBtn}>🏭 FABRİKAYI ÇALIŞTIR</button>
-      <button onClick={_se} style={shareBtn}>🚀 PAYLAŞ</button>
 
       <h3 style={{marginTop: '30px', color: '#9ca3af'}}>Yatırımlar</h3>
       <div style={{ maxWidth: '700px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
         <div style={upgradeContainer}>
           <button onClick={() => buyUpgrade('clickPower', 150)} style={upgBtn}>
-            🚀 Tık Gücü (Lv {_levels.clickPower})<br/>
+            🚀 Tık Gücü<br/>
             <small>${Math.floor(150 * Math.pow(2.5, _levels.clickPower))}</small>
           </button>
-          <p style={descText}>Tıklama kazancını katlar.</p>
         </div>
 
         <div style={upgradeContainer}>
           <button onClick={() => buyUpgrade('autoWorker', 600)} style={upgBtn}>
-            🤖 Otomatik İşçi (Lv {_levels.autoWorker})<br/>
+            🤖 İşçi (Lv {_levels.autoWorker})<br/>
             <small>${Math.floor(600 * Math.pow(2.5, _levels.autoWorker))}</small>
           </button>
           <p style={descText}>çok yavaş bir köle</p>
@@ -193,18 +170,16 @@ function App() {
 
         <div style={upgradeContainer}>
           <button onClick={() => buyUpgrade('marketing', 200)} style={upgBtn}>
-            📈 Pazarlama (Lv {_levels.marketing})<br/>
+            📈 Pazarlama<br/>
             <small>${Math.floor(200 * Math.pow(2.5, _levels.marketing))}</small>
           </button>
-          <p style={descText}>Satış fiyatını +3$ artırır.</p>
         </div>
 
         <div style={upgradeContainer}>
           <button onClick={() => buyUpgrade('factorySize', 400)} style={upgBtn}>
-            🏗️ Depo Büyüt (Lv {_levels.factorySize})<br/>
+            🏗️ Depo Büyüt<br/>
             <small>${Math.floor(400 * Math.pow(2.5, _levels.factorySize))}</small>
           </button>
-          <p style={descText}>Stok kapasitesini +30 artırır.</p>
         </div>
       </div>
 
@@ -212,7 +187,6 @@ function App() {
         {_ns.map(n => <div key={n.id} style={{ color: n.text.includes('şüpheli') ? '#ff4d4d' : '#6b7280' }}>⚡ {n.text}</div>)}
       </div>
 
-      {/* MUZİPLİK: Nargile Borusu Görseli (CSS ile konumlandırma) */}
       {_nargile && (
           <div
             onClick={_handleNargileClick}
@@ -221,38 +195,26 @@ function App() {
                 left: `${_nargile.x}%`,
                 top: `${_nargile.y}%`,
                 padding: '10px 15px',
-                backgroundColor: 'rgba(251, 191, 36, 0.9)', // Hafif şeffaf sarı
+                backgroundColor: '#fbbf24',
                 color: '#1a1a1a',
                 borderRadius: '20px',
                 cursor: 'pointer',
                 fontWeight: 'bold',
-                fontSize: '0.9rem',
-                boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-                transition: 'transform 0.1s ease', // Tıklama efekti için
-                animation: 'pulse 1s infinite alternate', // Hafif parlama animasyonu
+                animation: 'pulse 1s infinite alternate',
+                zIndex: 100
             }}
-            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
             🌬️ Nargile borusu
           </div>
       )}
 
-      {/* CSS Animasyonu (püskürtme efekti) */}
-      <style>{`
-        @keyframes pulse {
-            from { box-shadow: 0 0 5px rgba(251, 191, 36, 0.5); }
-            to { box-shadow: 0 0 15px rgba(251, 191, 36, 1); }
-        }
-      `}</style>
-
+      <style>{`@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }`}</style>
     </div>
   );
 }
 
 const statBox = { background: '#1e1e24', padding: '15px', borderRadius: '10px', border: '1px solid #333', minWidth: '120px' };
 const mainBtn = { padding: '20px 40px', fontSize: '1.2rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', margin: '10px' };
-const shareBtn = { padding: '10px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer' };
 const upgradeContainer = { display: 'flex', flexDirection: 'column' as any, alignItems: 'center' };
 const upgBtn = { width: '100%', padding: '12px', background: '#1e1e24', color: 'white', border: '1px solid #444', borderRadius: '8px', cursor: 'pointer' };
 const descText = { fontSize: '0.75rem', color: '#9ca3af', marginTop: '5px', fontStyle: 'italic' };
