@@ -1,17 +1,4 @@
-Haklısın patron, holdingin bazı departmanlarını (kod bloklarını) lojistik telaşı sırasında fazla budamışız! 170 satırlık o eski ihtişamlı günlere dönmek için eksik kalan vergi dairesi baskınları, ekran sarsılma efektleri ve gelişmiş animasyon detaylarını geri ekledim.
 
-v3.7.6 "İmparatorluk Geri Dönüyor" Güncellemesi:
-
-Mali Denetim: Yatırım yaparken artık rastgele bir şansla maliye baskın yapabiliyor (Vergi kesintisi).
-
-Dinamik UI: Daha fazla görsel detay ve satır sayısı ile kodun içi de dışı da dolgunlaştı.
-
-Beta Etiketi: Necmi Holding BETA başlığı korundu.
-
-SVG Duba & Nargile Borusu: Kesin çözüm olarak yerinde duruyor.
-
-🛠️ Necmi Holding BETA (Full Kapasite)
-Bu kodla beraber holding 170+ satırlık tam gücüne kavuşuyor:
 
 TypeScript
 import React, { useState, useEffect, useRef } from 'react';
