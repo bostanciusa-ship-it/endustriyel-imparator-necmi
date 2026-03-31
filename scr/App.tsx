@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// ARTIK HARİCİ VE SAĞLAM BİR LİNK KULLANIYORUZ
-const DUBA_URL = "https://i.postimg.cc/85M7S7S7/duba.png"; 
+// ARTIK RESİM DEĞİL, KODLA ÇİZİLMİŞ ASLA PATLAMAYAN DUBA
+const DubaCizimi = () => (
+  <svg width="60" height="80" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0 0 10px rgba(255,165,0,0.5))' }}>
+    <path d="M10 100 L90 100 L85 110 L15 110 Z" fill="#333" /> {/* Taban */}
+    <path d="M30 100 L40 20 L60 20 L70 100 Z" fill="#FF6600" /> {/* Gövde Turuncu */}
+    <path d="M36 50 L64 50 L66 65 L34 65 Z" fill="white" /> {/* Beyaz Şerit */}
+    <path d="M40 20 L60 20 L61 25 L39 25 Z" fill="#333" /> {/* Tepe Siyahlık */}
+  </svg>
+);
 
 function App() {
   const [_c, _sc] = useState(100); 
@@ -36,7 +43,6 @@ function App() {
     _setPlane(true);
     _an("✈️ Uçak geçiyor, duba bırakıldı!");
     
-    // Uçak tam tepedeyken duba düşer
     setTimeout(() => {
       _setDuba({ id: Date.now(), x: Math.random() * 60 + 20, y: Math.random() * 30 + 15 });
     }, 2000);
@@ -77,16 +83,16 @@ function App() {
       });
 
       const now = Date.now();
-      // Test için süreleri kısalttım patron:
-      if (now - lastNargileTime.current > 30000) { if (!_nargile) spawnNargile(); } 
-      if (now - lastPlaneTime.current > 40000) { if (!_plane) spawnPlane(); }
+      // Test süreleri (45 saniye nargile, 60 saniye uçak)
+      if (now - lastNargileTime.current > 45000) { if (!_nargile) spawnNargile(); } 
+      if (now - lastPlaneTime.current > 60000) { if (!_plane) spawnPlane(); }
     }, 1000);
     return () => clearInterval(mainTick);
   }, [_p, autoProdRate, salePrice, storageLimit, _nargile, _plane]);
 
   return (
     <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: '#0a0a0c', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
-      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding v3.7.2 🚧</h2>
+      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding v3.7.3 🚧</h2>
       
       <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '20px' }}>
         <div style={statBox}>Kasa: <br/><span style={{color: '#4ade80'}}>${_c.toLocaleString()}</span></div>
@@ -98,22 +104,13 @@ function App() {
       {/* UÇAK */}
       {_plane && <div style={{ position: 'absolute', top: '10%', left: '-100px', fontSize: '4.5rem', animation: 'fly 4.5s linear forwards', zIndex: 90 }}>✈️</div>}
 
-      {/* DUBA - GARANTİLİ GÖSTERİM */}
+      {/* DUBA (ASLA PATLAMAZ) */}
       {_duba && (
         <div 
           onClick={() => { _sc(prev => prev + 1); _setDuba(null); _an("🚧 +1$ Duba toplandı!"); }}
-          style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, cursor: 'pointer', zIndex: 999 }}
+          style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, cursor: 'pointer', zIndex: 999, animation: 'bob 2s infinite' }}
         >
-          <img 
-            src={DUBA_URL} 
-            alt="🚧" 
-            style={{ width: '70px', height: 'auto', animation: 'bob 2s infinite', display: 'block' }}
-            onError={(e) => {
-              // Eğer resim linki yine patlarsa görsel yerine turuncu bir kutu çıkar
-              (e.target as any).style.display = 'none';
-              (e.target as any).parentElement.innerHTML = '<div style="width:40px; height:60px; background:orange; border-radius:5px; border:2px solid white;"></div>';
-            }}
-          />
+          <DubaCizimi />
         </div>
       )}
 
@@ -127,7 +124,6 @@ function App() {
         </div>
       )}
 
-      {/* PANEL */}
       <div style={{ maxWidth: '800px', margin: '30px auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         <button onClick={() => buyUpgrade('clickPower', 150)} style={upgBtn}>
           <div style={upgTitle}>🚀 Tık Gücü (Lv {_levels.clickPower})</div>
@@ -149,10 +145,6 @@ function App() {
           <div style={upgDesc}>yer aç patron</div>
           <div style={upgPrice}>Fiyat: ${getCost('factorySize', 400).toLocaleString()}</div>
         </button>
-      </div>
-
-      <div style={{ marginTop: '20px', color: '#6b7280', fontSize: '0.8rem' }}>
-        {_ns.map(n => <div key={n.id}>⚡ {n.text}</div>)}
       </div>
 
       <style>{`
