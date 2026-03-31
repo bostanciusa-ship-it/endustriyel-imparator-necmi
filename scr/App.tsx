@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// Gömülü Duba Fotoğrafı (Base64) - Kendi içinde, dosya gerektirmez
-const DUBA_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAABCCAYAAAAOq78DAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAIQSURBVGhD7ZmxSgNREEXXIKKgpYVpUuTf29rYWFvYWPgFNoKNhV9gYWFpYalgaWEp6Ofszm6yO8nuxmRhc88D97079+7O6yY77800GCHEYDBCiMFghBCD4R9CptNpfH1+p9NpUqXatvYatC37FpIkSRL/P98HhT9kYQ8yGo1O96u88Ics7EEMBiOEGKwqX8O4DAbDB6sa3OIn6xqcqurY7v6uBieUatvYtmVvW/b7vLqYyWQSX/X8Lp8X/pCHPUjX9Tf6fWf8IQt7EIPBCCEGgxFCDEYIMRiMEGAwGCHEYDAajBBiMBiMEGAwGCHEYDAajBBiMBghxGAwGCHEYDBCCDEYjBBisKp+D/GIn6xqcKqqY7v7uxqcUNuxbWzbSrcve9uy3+fVp6Gv18+LP2RhD9J13U99PzP+kIU9iMFghBCDwaq29mI97K6116Btrb2YyWQSv776G/288Ics7EG6rrtR3zvjD1nYgxgMRggxWKpU29Zeg7Zl30KSJEni/+/8UPhDFvYgo9Ho9PDy6/v9C/+vEPiEwCcEPiHwCYFPCHxC4BMCN7/AmZmfwCcEPiHwCYFPCHxC4BMCN78InxCCnxCCnxCCnxCCnxCCnxD4hMDnl8DPCN97vff6ePH9hMAvAZ8Q+ITAP4S8vL4S8AmBTwj6fVf8EAL/A4FfFfAJgc8fP/|D6EEOIDVv8A69vMOf+p72wAAAAASUVORK5CYII=";
+// ARTIK HARİCİ VE SAĞLAM BİR LİNK KULLANIYORUZ
+const DUBA_URL = "https://i.postimg.cc/85M7S7S7/duba.png"; 
 
 function App() {
   const [_c, _sc] = useState(100); 
   const [_p, _sp] = useState(0);   
   const [_ns, _sns] = useState<{id: number, text: string}[]>([]); 
-  const [_isTaxing, _setIsTaxing] = useState(false); 
   const [_nargile, _setNargile] = useState<{id: number, x: number, y: number} | null>(null);
   const [_plane, _setPlane] = useState(false); 
   const [_duba, _setDuba] = useState<{id: number, x: number, y: number} | null>(null);
@@ -35,13 +34,11 @@ function App() {
   const spawnPlane = () => {
     if (_plane) return;
     _setPlane(true);
-    _an("✈️ Uçak geçiyor, duba geliyor!");
+    _an("✈️ Uçak geçiyor, duba bırakıldı!");
     
-    // Uçak geçerken tam ortalarda dubayı bırakır
+    // Uçak tam tepedeyken duba düşer
     setTimeout(() => {
-      const newDuba = { id: Date.now(), x: Math.random() * 50 + 25, y: Math.random() * 30 + 20 };
-      _setDuba(newDuba);
-      console.log("Duba bırakıldı:", newDuba); // Kontrol için
+      _setDuba({ id: Date.now(), x: Math.random() * 60 + 20, y: Math.random() * 30 + 15 });
     }, 2000);
 
     setTimeout(() => {
@@ -57,7 +54,7 @@ function App() {
     setTimeout(() => {
         _setNargile(prev => prev?.id === id ? null : prev);
         lastNargileTime.current = Date.now();
-    }, 10000);
+    }, 8000);
   };
 
   const buyUpgrade = (type: keyof typeof _levels, baseCost: number) => {
@@ -73,7 +70,6 @@ function App() {
 
   useEffect(() => {
     const mainTick = setInterval(() => {
-      // Üretim & Satış
       if (autoProdRate > 0) _sp(prev => (prev < storageLimit ? prev + autoProdRate : prev));
       _sc(prev => {
         if (_p >= 1) { _sp(stok => stok - 1); return prev + salePrice; }
@@ -81,18 +77,16 @@ function App() {
       });
 
       const now = Date.now();
-      // Nargile: Her 45 saniyede bir kontrol
-      if (now - lastNargileTime.current > 45000) { if (!_nargile) spawnNargile(); }
-      // Uçak: Her 60 saniyede bir kontrol (Hızlandırdım)
-      if (now - lastPlaneTime.current > 60000) { if (!_plane) spawnPlane(); }
+      // Test için süreleri kısalttım patron:
+      if (now - lastNargileTime.current > 30000) { if (!_nargile) spawnNargile(); } 
+      if (now - lastPlaneTime.current > 40000) { if (!_plane) spawnPlane(); }
     }, 1000);
-
     return () => clearInterval(mainTick);
   }, [_p, autoProdRate, salePrice, storageLimit, _nargile, _plane]);
 
   return (
     <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: '#0a0a0c', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
-      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding v3.7.1 🚧</h2>
+      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding v3.7.2 🚧</h2>
       
       <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '20px' }}>
         <div style={statBox}>Kasa: <br/><span style={{color: '#4ade80'}}>${_c.toLocaleString()}</span></div>
@@ -101,30 +95,39 @@ function App() {
 
       <button onClick={() => { if (_p < storageLimit) { _sc(prev => prev + clickGain); _sp(prev => prev + 1); } }} style={mainBtn}>🏭 FABRİKAYI ÇALIŞTIR</button>
 
-      {/* UÇAK: EN ÜSTTE OLMASI İÇİN zIndex 999 */}
-      {_plane && <div style={{ position: 'absolute', top: '15%', left: '-100px', fontSize: '4rem', animation: 'fly 4.5s linear forwards', zIndex: 999, pointerEvents: 'none' }}>✈️</div>}
+      {/* UÇAK */}
+      {_plane && <div style={{ position: 'absolute', top: '10%', left: '-100px', fontSize: '4.5rem', animation: 'fly 4.5s linear forwards', zIndex: 90 }}>✈️</div>}
 
-      {/* DUBA: Tıklanabilir ve en üstte (zIndex 1000) */}
+      {/* DUBA - GARANTİLİ GÖSTERİM */}
       {_duba && (
         <div 
-          onClick={() => { _sc(prev => prev + 1); _setDuba(null); _an("🚧 +1$ Duba"); }}
-          style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, cursor: 'pointer', zIndex: 1000, transition: 'all 0.3s' }}
+          onClick={() => { _sc(prev => prev + 1); _setDuba(null); _an("🚧 +1$ Duba toplandı!"); }}
+          style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, cursor: 'pointer', zIndex: 999 }}
         >
-          <img src={DUBA_BASE64} alt="" style={{ width: '80px', height: 'auto', animation: 'bob 2s infinite' }} />
+          <img 
+            src={DUBA_URL} 
+            alt="🚧" 
+            style={{ width: '70px', height: 'auto', animation: 'bob 2s infinite', display: 'block' }}
+            onError={(e) => {
+              // Eğer resim linki yine patlarsa görsel yerine turuncu bir kutu çıkar
+              (e.target as any).style.display = 'none';
+              (e.target as any).parentElement.innerHTML = '<div style="width:40px; height:60px; background:orange; border-radius:5px; border:2px solid white;"></div>';
+            }}
+          />
         </div>
       )}
 
-      {/* NARGİLE BORUSU: zIndex 1000 */}
+      {/* NARGİLE BORUSU */}
       {_nargile && (
         <div 
           onClick={() => { _sc(prev => prev + 200); _setNargile(null); _an("🌬️ +200$ Nargile Borusu"); }} 
-          style={{ position: 'absolute', left: `${_nargile.x}%`, top: `${_nargile.y}%`, padding: '15px 25px', backgroundColor: '#fbbf24', color: '#1a1a1a', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 1000, boxShadow: '0 0 30px #fbbf24', animation: 'pulse 1s infinite alternate' }}
+          style={{ position: 'absolute', left: `${_nargile.x}%`, top: `${_nargile.y}%`, padding: '15px 25px', backgroundColor: '#fbbf24', color: '#1a1a1a', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 999, boxShadow: '0 0 30px #fbbf24', animation: 'pulse 1s infinite alternate' }}
         >
           🌬️ Nargile Borusu
         </div>
       )}
 
-      {/* UPGRADE PANELİ */}
+      {/* PANEL */}
       <div style={{ maxWidth: '800px', margin: '30px auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         <button onClick={() => buyUpgrade('clickPower', 150)} style={upgBtn}>
           <div style={upgTitle}>🚀 Tık Gücü (Lv {_levels.clickPower})</div>
@@ -154,7 +157,7 @@ function App() {
 
       <style>{`
         @keyframes fly { from { left: -15%; } to { left: 115%; } }
-        @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-40px); } }
+        @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
         @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
       `}</style>
     </div>
