@@ -1,6 +1,3 @@
-
-
-TypeScript
 import React, { useState, useEffect, useRef } from 'react';
 
 // PATLAMAYAN SVG DUBA TASARIMI
