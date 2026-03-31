@@ -127,7 +127,6 @@ function App() {
     return () => clearInterval(mainTick);
   }, [_p, autoProdRate, salePrice, storageLimit, _nargile, _plane]);
 
-  // AÇIKLAMALARI TUTAN DATA OBJESİ
   const upgInfo = {
     clickPower: { title: "🚀 TIK GÜCÜ", desc: "daha sert bas" },
     autoWorker: { title: "🤖 İŞÇİ", desc: "çok yavaş bir köle" },
@@ -136,7 +135,7 @@ function App() {
   };
 
   return (
-    <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: _isTaxing ? '#3d1212' : '#0b0b0f', transition: 'background-color 0.5s ease', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: _isTaxing ? '#3d1212' : '#0b0b0f', transition: 'background-color 0.5s ease', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden', paddingBottom: '60px' }}>
       
       <header style={{ marginBottom: '35px' }}>
         <h1 style={{ color: '#3b82f6', fontSize: '2.5rem', marginBottom: '5px' }}>Necmi Holding BETA 🚧</h1>
@@ -179,6 +178,11 @@ function App() {
       <footer style={{ marginTop: '50px', borderTop: '1px solid #1f2937', paddingTop: '20px' }}>
         {_logs.map(log => <div key={log.id} style={{ color: log.text.includes('AKBİL') ? '#f87171' : '#6b7280', fontSize: '0.9rem', padding: '3px' }}>{log.text}</div>)}
       </footer>
+
+      {/* SÜRÜM NOTU */}
+      <div style={{ position: 'absolute', bottom: '10px', left: '0', right: '0', fontSize: '0.7rem', color: '#374151', textAlign: 'center', pointerEvents: 'none' }}>
+        Necmi Holding BETA v3.8.2
+      </div>
 
       <style>{`
         @keyframes fly { from { left: -20%; } to { left: 120%; } }
