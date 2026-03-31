@@ -22,7 +22,6 @@ function App() {
   const lastNargileTime = useRef(Date.now());
   const lastPlaneTime = useRef(Date.now());
 
-  // GELİŞMİŞ SES MOTORU
   const playSound = (freq: number, type: OscillatorType = 'sine', duration: number = 0.1) => {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -36,7 +35,6 @@ function App() {
       gain.connect(ctx.destination);
       osc.start();
       osc.stop(ctx.currentTime + duration);
-      // Temizlik
       setTimeout(() => ctx.close(), duration * 1000 + 100);
     } catch (e) { console.log("Ses motoru beklemede..."); }
   };
@@ -48,7 +46,6 @@ function App() {
     factorySize: 1 
   });
 
-  // MALİYET VE KAZANÇ HESAPLARI
   const getCost = (type: keyof typeof _levels, base: number) => Math.floor(base * Math.pow(2.4, _levels[type]));
   const clickGain = _levels.clickPower * 10;
   const autoProdRate = _levels.autoWorker * 0.25; 
@@ -101,7 +98,6 @@ function App() {
       playSound(800, 'sine', 0.2);
       _sc(prev => prev - cost);
       _setLevels(prev => ({ ...prev, [type]: prev[type] + 1 }));
-      // Maliye kontrolü
       if (Math.random() < 0.12 && _c > 1500) {
         _setIsTaxing(true);
         const tax = Math.floor(_c * 0.09);
@@ -125,24 +121,31 @@ function App() {
         return prev;
       });
       const now = Date.now();
-      // Nargile süresi 120 saniyeye (2 dakika) çekildi
       if (now - lastNargileTime.current > 120000 && !_nargile) spawnNargile();
       if (now - lastPlaneTime.current > 60000 && !_plane) spawnPlane();
     }, 1000);
     return () => clearInterval(mainTick);
   }, [_p, autoProdRate, salePrice, storageLimit, _nargile, _plane]);
 
+  // AÇIKLAMALARI TUTAN DATA OBJESİ
+  const upgInfo = {
+    clickPower: { title: "🚀 TIK GÜCÜ", desc: "daha sert bas" },
+    autoWorker: { title: "🤖 İŞÇİ", desc: "çok yavaş bir köle" },
+    marketing: { title: "📈 PAZARLAMA", desc: "yalan söylemeyi öğren" },
+    factorySize: { title: "🏗️ DEPO", desc: "yer aç patron" }
+  };
+
   return (
     <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: _isTaxing ? '#3d1212' : '#0b0b0f', transition: 'background-color 0.5s ease', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
       
       <header style={{ marginBottom: '35px' }}>
-        <h1 style={{ color: '#3b82f6', fontSize: '2.5rem', marginBottom: '5px', textShadow: '0 0 20px rgba(59,130,246,0.3)' }}>Necmi Holding BETA 🚧</h1>
+        <h1 style={{ color: '#3b82f6', fontSize: '2.5rem', marginBottom: '5px' }}>Necmi Holding BETA 🚧</h1>
         <div style={{ color: '#4b5563', fontSize: '0.8rem', letterSpacing: '3px' }}>INDUSTRIAL IMPERIUM</div>
       </header>
       
       <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '40px' }}>
-        <div style={statCard}>KASA<br/><span style={{color: '#4ade80', fontSize: '1.8rem', fontWeight: 'bold'}}>${_c.toLocaleString()}</span></div>
-        <div style={statCard}>STOK<br/><span style={{color: '#fbbf24', fontSize: '1.8rem', fontWeight: 'bold'}}>{_p.toFixed(1)} / {storageLimit}</span></div>
+        <div style={statCard}>KASA<br/><span style={{color: '#4ade80', fontSize: '1.8rem'}}>${_c.toLocaleString()}</span></div>
+        <div style={statCard}>STOK<br/><span style={{color: '#fbbf24', fontSize: '1.8rem'}}>{_p.toFixed(1)} / {storageLimit}</span></div>
       </div>
 
       <button onClick={handleWork} style={mainBtn}>🏭 FABRİKAYI ŞAHLANDIR</button>
@@ -158,7 +161,7 @@ function App() {
 
       {_nargile && (
         <div onClick={() => { playSound(1600, 'sine', 0.3); _sc(prev => prev + 150); _setNargile(null); addLog("🌬️ +150$ Nargile Borusu!"); }} 
-             style={nargileBox(_nargile.x, _nargile.y)}>
+             style={nargileStyle(_nargile.x, _nargile.y)}>
           🌬️ NARGİLE BORUSU
         </div>
       )}
@@ -166,8 +169,8 @@ function App() {
       <div style={{ maxWidth: '950px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '25px' }}>
         {Object.entries(_levels).map(([key, lv]) => (
           <button key={key} onClick={() => buyUpgrade(key as any, key === 'clickPower' ? 150 : key === 'autoWorker' ? 600 : key === 'marketing' ? 200 : 400)} style={upgCard}>
-            <div style={{fontWeight: 'bold', color: '#6366f1', marginBottom: '8px'}}>{key.replace(/([A-Z])/g, ' $1').toUpperCase()}</div>
-            <div style={{fontSize: '0.8rem', color: '#9ca3af', marginBottom: '10px'}}>Seviye {lv}</div>
+            <div style={{fontWeight: 'bold', color: '#6366f1', marginBottom: '4px'}}>{upgInfo[key as keyof typeof upgInfo].title} (Lv {lv})</div>
+            <div style={{fontSize: '0.75rem', color: '#9ca3af', fontStyle: 'italic', marginBottom: '10px'}}>{upgInfo[key as keyof typeof upgInfo].desc}</div>
             <div style={{color: '#4ade80', fontSize: '1.1rem'}}>${getCost(key as any, 150).toLocaleString()}</div>
           </button>
         ))}
@@ -186,9 +189,9 @@ function App() {
   );
 }
 
-const statCard = { background: '#16161e', padding: '25px', borderRadius: '20px', minWidth: '160px', border: '1px solid #23232e', boxShadow: '0 8px 16px rgba(0,0,0,0.4)' };
-const mainBtn = { padding: '30px 70px', fontSize: '1.6rem', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: 'white', border: 'none', borderRadius: '25px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '40px', transition: 'all 0.2s', boxShadow: '0 12px 24px rgba(37,99,235,0.3)' };
-const upgCard = { padding: '25px', background: '#16161e', border: '1px solid #2d2d39', borderRadius: '20px', color: 'white', cursor: 'pointer', transition: 'all 0.3s' };
-const nargileBox = (x:number, y:number): React.CSSProperties => ({ position: 'absolute', left: `${x}%`, top: `${y}%`, padding: '20px 35px', backgroundColor: '#fbbf24', color: '#000', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 1001, animation: 'pulse 0.9s infinite alternate' });
+const statCard = { background: '#16161e', padding: '25px', borderRadius: '20px', minWidth: '160px', border: '1px solid #23232e' };
+const mainBtn = { padding: '30px 70px', fontSize: '1.6rem', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: 'white', border: 'none', borderRadius: '25px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '40px' };
+const upgCard = { padding: '25px', background: '#16161e', border: '1px solid #2d2d39', borderRadius: '20px', color: 'white', cursor: 'pointer' };
+const nargileStyle = (x:number, y:number): React.CSSProperties => ({ position: 'absolute', left: `${x}%`, top: `${y}%`, padding: '20px 35px', backgroundColor: '#fbbf24', color: '#000', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 1001, animation: 'pulse 0.9s infinite alternate' });
 
 export default App;
