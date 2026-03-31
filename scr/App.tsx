@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// Gömülü Duba Fotoğrafı (Base64)
-const DUBA_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAABCCAYAAAAOq78DAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAIQSURBVGhD7ZmxSgNREEXXIKKgpYVpUuTf29rYWFvYWPgFNoKNhV9gYWFpYalgaWEp6Ofszm6yO8nuxmRhc88D97079+7O6yY77800GCHEYDBCiMFghBCD4R9CptNpfH1+p9NpUqXatvYatC37FpIkSRL/P98HhT9kYQ8yGo1O96u88Ics7EEMBiOEGKwqX8O4DAbDB6sa3OIn6xqcqurY7v6uBieUatvYtmVvW/b7vLqYyWQSX/X8Lp8X/pCHPUjX9Tf6fWf8IQt7EIPBCCEGgxFCDEYIMRiMEGAwGCHEYDAajBBiMBiMEGAwGCHEYDAajBBiMBghxGAwGCHEYDBCCDEYjBBisKp+D/GIn6xqcKqqY7v7uxqcUNuxbWzbSrcve9uy3+fVp6Gv18+LP2RhD9J13U99PzP+kIU9iMFghBCDwaq29mI97K6116Btrb2YyWQSv776G/288Ics7EG6rrtR3zvjD1nYgxgMRggxWKpU29Zeg7Zl30KSJEni/+/8UPhDFvYgo9Ho9PDy6/v9C/+vEPiEwCcEPiHwCYFPCHxC4BMCN7/AmZmfwCcEPiHwCYFPCHxC4BMCN78InxCCnxCCnxCCnxCCnxCCnxD4hMDnl8DPCN97vff6ePH9hMAvAZ8Q+ITAP4S8vL4S8AmBTwj6fVf8EAL/A4FfFfAJgc8fP/L90D6EEOIDVv8A69vMOf+p72wAAAAASUVORK5CYII=";
+// Gömülü Duba Fotoğrafı (Base64) - Kendi içinde, dosya gerektirmez
+const DUBA_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAABCCAYAAAAOq78DAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAIQSURBVGhD7ZmxSgNREEXXIKKgpYVpUuTf29rYWFvYWPgFNoKNhV9gYWFpYalgaWEp6Ofszm6yO8nuxmRhc88D97079+7O6yY77800GCHEYDBCiMFghBCD4R9CptNpfH1+p9NpUqXatvYatC37FpIkSRL/P98HhT9kYQ8yGo1O96u88Ics7EEMBiOEGKwqX8O4DAbDB6sa3OIn6xqcqurY7v6uBieUatvYtmVvW/b7vLqYyWQSX/X8Lp8X/pCHPUjX9Tf6fWf8IQt7EIPBCCEGgxFCDEYIMRiMEGAwGCHEYDAajBBiMBiMEGAwGCHEYDAajBBiMBghxGAwGCHEYDBCCDEYjBBisKp+D/GIn6xqcKqqY7v7uxqcUNuxbWzbSrcve9uy3+fVp6Gv18+LP2RhD9J13U99PzP+kIU9iMFghBCDwaq29mI97K6116Btrb2YyWQSv776G/288Ics7EG6rrtR3zvjD1nYgxgMRggxWKpU29Zeg7Zl30KSJEni/+/8UPhDFvYgo9Ho9PDy6/v9C/+vEPiEwCcEPiHwCYFPCHxC4BMCN7/AmZmfwCcEPiHwCYFPCHxC4BMCN78InxCCnxCCnxCCnxCCnxCCnxD4hMDnl8DPCN97vff6ePH9hMAvAZ8Q+ITAP4S8vL4S8AmBTwj6fVf8EAL/A4FfFfAJgc8fP/|D6EEOIDVv8A69vMOf+p72wAAAAASUVORK5CYII=";
 
 function App() {
   const [_c, _sc] = useState(100); 
@@ -35,14 +35,19 @@ function App() {
   const spawnPlane = () => {
     if (_plane) return;
     _setPlane(true);
-    _an("✈️ Lojistik duba bırakıldı!");
+    _an("✈️ Uçak geçiyor, duba geliyor!");
+    
+    // Uçak geçerken tam ortalarda dubayı bırakır
     setTimeout(() => {
-      _setDuba({ id: Date.now(), x: Math.random() * 60 + 20, y: Math.random() * 40 + 20 });
-    }, 1500);
+      const newDuba = { id: Date.now(), x: Math.random() * 50 + 25, y: Math.random() * 30 + 20 };
+      _setDuba(newDuba);
+      console.log("Duba bırakıldı:", newDuba); // Kontrol için
+    }, 2000);
+
     setTimeout(() => {
       _setPlane(false);
       lastPlaneTime.current = Date.now();
-    }, 4000);
+    }, 4500);
   };
 
   const spawnNargile = () => {
@@ -52,7 +57,7 @@ function App() {
     setTimeout(() => {
         _setNargile(prev => prev?.id === id ? null : prev);
         lastNargileTime.current = Date.now();
-    }, 8000);
+    }, 10000);
   };
 
   const buyUpgrade = (type: keyof typeof _levels, baseCost: number) => {
@@ -60,14 +65,7 @@ function App() {
     if (_c >= cost) {
       _sc(prev => prev - cost);
       _setLevels(prev => ({ ...prev, [type]: prev[type] + 1 }));
-      if (Math.random() < 0.12 && _c > 500) {
-        _setIsTaxing(true);
-        setTimeout(() => _setIsTaxing(false), 800);
-        _sc(prev => prev - Math.floor(prev * 0.05));
-        _an(`🚨 Kesinti yapıldı!`);
-      } else {
-        _an("Yatırım yapıldı!");
-      }
+      _an("Yatırım yapıldı!");
     } else {
       _an("KASA BOŞ!"); 
     }
@@ -75,21 +73,26 @@ function App() {
 
   useEffect(() => {
     const mainTick = setInterval(() => {
+      // Üretim & Satış
       if (autoProdRate > 0) _sp(prev => (prev < storageLimit ? prev + autoProdRate : prev));
       _sc(prev => {
         if (_p >= 1) { _sp(stok => stok - 1); return prev + salePrice; }
         return prev;
       });
+
       const now = Date.now();
-      if (now - lastNargileTime.current > 60000) { if (!_nargile) spawnNargile(); }
-      if (now - lastPlaneTime.current > 90000) { if (!_plane) spawnPlane(); }
+      // Nargile: Her 45 saniyede bir kontrol
+      if (now - lastNargileTime.current > 45000) { if (!_nargile) spawnNargile(); }
+      // Uçak: Her 60 saniyede bir kontrol (Hızlandırdım)
+      if (now - lastPlaneTime.current > 60000) { if (!_plane) spawnPlane(); }
     }, 1000);
+
     return () => clearInterval(mainTick);
   }, [_p, autoProdRate, salePrice, storageLimit, _nargile, _plane]);
 
   return (
-    <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: _isTaxing ? '#2d0a0a' : '#0a0a0c', transition: 'background-color 0.3s ease', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
-      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding v3.7.0 🚧</h2>
+    <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: '#0a0a0c', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <h2 style={{ color: '#3b82f6', marginBottom: '20px' }}>Necmi Holding v3.7.1 🚧</h2>
       
       <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '20px' }}>
         <div style={statBox}>Kasa: <br/><span style={{color: '#4ade80'}}>${_c.toLocaleString()}</span></div>
@@ -98,28 +101,30 @@ function App() {
 
       <button onClick={() => { if (_p < storageLimit) { _sc(prev => prev + clickGain); _sp(prev => prev + 1); } }} style={mainBtn}>🏭 FABRİKAYI ÇALIŞTIR</button>
 
-      {_plane && <div style={{ position: 'absolute', top: '15%', left: '-100px', fontSize: '3.5rem', animation: 'fly 4s linear forwards', zIndex: 100 }}>✈️</div>}
+      {/* UÇAK: EN ÜSTTE OLMASI İÇİN zIndex 999 */}
+      {_plane && <div style={{ position: 'absolute', top: '15%', left: '-100px', fontSize: '4rem', animation: 'fly 4.5s linear forwards', zIndex: 999, pointerEvents: 'none' }}>✈️</div>}
 
-      {/* SADECE DUBA */}
+      {/* DUBA: Tıklanabilir ve en üstte (zIndex 1000) */}
       {_duba && (
-        <img 
-          src={DUBA_BASE64} 
-          alt="" 
+        <div 
           onClick={() => { _sc(prev => prev + 1); _setDuba(null); _an("🚧 +1$ Duba"); }}
-          style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, width: '65px', height: 'auto', cursor: 'pointer', zIndex: 101, animation: 'bob 2s infinite', userSelect: 'none' }} 
-        />
+          style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, cursor: 'pointer', zIndex: 1000, transition: 'all 0.3s' }}
+        >
+          <img src={DUBA_BASE64} alt="" style={{ width: '80px', height: 'auto', animation: 'bob 2s infinite' }} />
+        </div>
       )}
 
-      {/* NARGİLE BORUSU - $200 VERİR */}
+      {/* NARGİLE BORUSU: zIndex 1000 */}
       {_nargile && (
         <div 
           onClick={() => { _sc(prev => prev + 200); _setNargile(null); _an("🌬️ +200$ Nargile Borusu"); }} 
-          style={{ position: 'absolute', left: `${_nargile.x}%`, top: `${_nargile.y}%`, padding: '15px 25px', backgroundColor: '#fbbf24', color: '#1a1a1a', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 101, boxShadow: '0 0 25px #fbbf24', animation: 'pulse 1s infinite alternate' }}
+          style={{ position: 'absolute', left: `${_nargile.x}%`, top: `${_nargile.y}%`, padding: '15px 25px', backgroundColor: '#fbbf24', color: '#1a1a1a', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 1000, boxShadow: '0 0 30px #fbbf24', animation: 'pulse 1s infinite alternate' }}
         >
           🌬️ Nargile Borusu
         </div>
       )}
 
+      {/* UPGRADE PANELİ */}
       <div style={{ maxWidth: '800px', margin: '30px auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         <button onClick={() => buyUpgrade('clickPower', 150)} style={upgBtn}>
           <div style={upgTitle}>🚀 Tık Gücü (Lv {_levels.clickPower})</div>
@@ -148,8 +153,8 @@ function App() {
       </div>
 
       <style>{`
-        @keyframes fly { from { left: -20%; } to { left: 120%; } }
-        @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
+        @keyframes fly { from { left: -15%; } to { left: 115%; } }
+        @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-40px); } }
         @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
       `}</style>
     </div>
