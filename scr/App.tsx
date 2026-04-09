@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-/** * --- SES MOTORU ---
- */
+/** * --- SES MOTORU --- */
 const playSfx = (type: 'click' | 'buy' | 'collect' | 'plane' | 'alert' | 'success') => {
   try {
     const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
@@ -32,7 +31,6 @@ const playSfx = (type: 'click' | 'buy' | 'collect' | 'plane' | 'alert' | 'succes
   } catch (e) {}
 };
 
-// --- GÖRSEL BİLEŞENLER ---
 const DubaIcon = () => (
   <svg width="60" height="75" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0 0 12px rgba(255,165,0,0.6))' }}>
     <path d="M10 100 L90 100 L85 110 L15 110 Z" fill="#222" />
@@ -60,7 +58,6 @@ function App() {
   const [duba, setDuba] = useState<{id: number, x: number, y: number, dropping: boolean} | null>(null);
   const [levels, setLevels] = useState({ clickPower: 1, autoWorker: 0, marketing: 1, factorySize: 1 });
   
-  // Kriz Durumları
   const [activeEvent, setActiveEvent] = useState<{ type: 'TAX' | 'STRIKE' | 'RAID', endTime: number } | null>(null);
   const [strikeActive, setStrikeActive] = useState(false);
 
@@ -71,16 +68,16 @@ function App() {
 
   const checkPass = () => {
     const input = pass.trim().toUpperCase();
-    if (input === "B123B123") { setMode("NECMI"); setIsLogged(true); addLog("Patron sahaya indi!"); }
-    else if (input === "3689") { setMode("HOCA"); setIsLogged(true); addLog("Akademik izleme aktif."); }
-    else { alert("Kod Yanlış!"); setPass(""); }
+    if (input === "B123B123") { setMode("NECMI"); setIsLogged(true); addLog("Patron sahada, kemerleri bağlayın!"); }
+    else if (input === "3689") { setMode("HOCA"); setIsLogged(true); addLog("Akademik veri akışı aktif."); }
+    else { alert("Erişim Reddedildi!"); setPass(""); }
   };
 
   const upgInfo = {
     clickPower: { title: "🚀 TIK GÜCÜ", hocaDesc: "Birim verimlilik.", necmiDesc: "Daha sert bas.", base: 200 },
-    autoWorker: { title: "🤖 İŞÇİ", hocaDesc: "Otomasyon sistemi.", necmiDesc: "Eleman al.", base: 500 },
+    autoWorker: { title: "🤖 İŞÇİ", hocaDesc: "Otomasyon.", necmiDesc: "Eleman al.", base: 500 },
     marketing: { title: "📈 PAZARLAMA", hocaDesc: "Satış hızı.", necmiDesc: "Malları okut.", base: 600 },
-    factorySize: { title: "🏗️ DEPO", hocaDesc: "Kapasite artışı.", necmiDesc: "Holdingi büyüt.", base: 650 }
+    factorySize: { title: "🏗️ DEPO", hocaDesc: "Kapasite.", necmiDesc: "Genişle.", base: 650 }
   };
 
   const getCost = (type: keyof typeof levels) => {
@@ -94,12 +91,12 @@ function App() {
     if (!activeEvent) return;
     if (success) {
       playSfx('success');
-      addLog(mode === 'HOCA' ? "✅ Risk yönetimi başarılı." : "🔥 Kriz çözüldü patron!");
+      addLog(mode === 'HOCA' ? "✅ Risk yönetildi." : "🔥 Kriz çözüldü.");
     } else {
       playSfx('alert');
-      const penalty = Math.floor(cash * 0.15);
+      const penalty = Math.floor(cash * 0.12);
       setCash(c => Math.max(0, c - penalty));
-      addLog(mode === 'HOCA' ? `❌ Operasyonel kayıp: -${penalty}$` : `❌ Ceza yedik: -${penalty}$`);
+      addLog(`❌ Ceza: -${penalty}$`);
     }
     setActiveEvent(null);
     setStrikeActive(false);
@@ -108,14 +105,12 @@ function App() {
   useEffect(() => {
     if (!isLogged) return;
     const tick = setInterval(() => {
-      // 1. Üretim (Grevde Durur)
       if (!strikeActive) {
         setStock(s => {
           const max = levels.factorySize * 40;
           return levels.autoWorker > 0 && s < max ? Math.min(s + (levels.autoWorker * 0.25), max) : s;
         });
       }
-      // 2. Satış
       setCash(c => {
         let cur = 0; setStock(s => { cur = s; return s; });
         if (cur >= 0.1) {
@@ -125,13 +120,12 @@ function App() {
         }
         return c;
       });
-      // 3. Rastgele Etkinlikler
       const now = Date.now();
       if (mode === "NECMI" && now - lastNargileRef.current > 120000 && !nargile) {
         setNargile({ id: now, x: Math.random() * 80 + 5, y: Math.random() * 60 + 15 });
         setTimeout(() => { setNargile(null); lastNargileRef.current = Date.now(); }, 8000);
       }
-      if (now - lastPlaneRef.current > 50000 && !planeActive) {
+      if (now - lastPlaneRef.current > 60000 && !planeActive) {
         setPlaneActive(true); playSfx('plane');
         setTimeout(() => {
           setDuba({ id: now, x: Math.random() * 70 + 15, y: Math.random() * 40 + 30, dropping: true });
@@ -139,12 +133,13 @@ function App() {
         }, 2500);
         setTimeout(() => { setPlaneActive(false); lastPlaneRef.current = Date.now(); }, 5500);
       }
-      // 4. Kriz Tetikleyici
-      if (!activeEvent && Math.random() < 0.02) {
+      
+      // KRİZ İHTİMALİ DÜŞÜRÜLDÜ (%0.5)
+      if (!activeEvent && Math.random() < 0.005) { 
         const types: ('TAX' | 'STRIKE' | 'RAID')[] = ['TAX', 'STRIKE', 'RAID'];
         const sel = types[Math.floor(Math.random() * types.length)];
         playSfx('alert');
-        setActiveEvent({ type: sel, endTime: Date.now() + 6000 });
+        setActiveEvent({ type: sel, endTime: Date.now() + 7000 }); // Süre 7 saniyeye çıktı
         if (sel === 'STRIKE') setStrikeActive(true);
       }
       if (activeEvent && Date.now() > activeEvent.endTime) resolveEvent(false);
@@ -156,9 +151,9 @@ function App() {
 
   if (!isLogged) return (
     <div style={{ backgroundColor: '#0f172a', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontFamily: 'sans-serif' }}>
-      <BackgroundGrid /><div style={{ ...card, width: '320px', textAlign: 'center', zIndex: 10 }}>
-        <h1 style={{ fontSize: '1.5rem', marginBottom: '20px' }}>NECMİ HOLDİNG V4</h1>
-        <input type="text" value={pass} onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && checkPass()} placeholder="Erişim Kodu" style={{ width: '80%', padding: '12px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '8px', marginBottom: '15px', textAlign: 'center' }} />
+      <BackgroundGrid /><div style={{ ...card, width: '320px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: '20px' }}>NECMİ HOLDİNG</h1>
+        <input type="text" value={pass} onChange={(e) => setPass(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && checkPass()} placeholder="Kod" style={{ width: '80%', padding: '12px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '8px', marginBottom: '15px', textAlign: 'center' }} />
         <button onClick={checkPass} style={{ width: '85%', padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>GİRİŞ</button>
       </div>
     </div>
@@ -168,22 +163,21 @@ function App() {
     <div style={{ backgroundColor: '#020617', minHeight: '100vh', color: 'white', fontFamily: 'sans-serif', padding: '20px', position: 'relative', overflow: 'hidden' }}>
       <BackgroundGrid />
       
-      {/* KRİZ PANELİ */}
       {activeEvent && (
-        <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', background: '#ef4444', padding: '20px', borderRadius: '15px', zIndex: 1000, textAlign: 'center', minWidth: '350px', border: '2px solid white', boxShadow: '0 0 30px rgba(239, 68, 68, 0.5)' }}>
-          <h2 style={{ margin: 0 }}>{activeEvent.type === 'TAX' ? (mode === 'HOCA' ? '⚖️ MEVZUAT DENETİMİ' : '⚖️ VERGİ DENETİMİ') : activeEvent.type === 'STRIKE' ? (mode === 'HOCA' ? '🪧 ENDÜSTRİYEL EYLEM' : '🪧 İŞÇİ GREVİ') : (mode === 'HOCA' ? '🚨 RİSK ANALİZİ' : '🚨 POLİS BASKINI')}</h2>
+        <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', background: '#ef4444', padding: '20px', borderRadius: '15px', zIndex: 1000, textAlign: 'center', minWidth: '350px', border: '2px solid white' }}>
+          <h2 style={{ margin: 0 }}>{activeEvent.type === 'TAX' ? (mode === 'HOCA' ? '⚖️ DENETİM' : '⚖️ VERGİ') : activeEvent.type === 'STRIKE' ? '🪧 GREV' : '🚨 BASKIN'}</h2>
           <p>Süre: {Math.max(0, Math.ceil((activeEvent.endTime - Date.now()) / 1000))}s</p>
           <button onClick={() => { if (activeEvent.type === 'STRIKE') setCash(c => Math.max(0, c - 100)); resolveEvent(true); }} style={{ padding: '10px 20px', background: 'white', color: 'black', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
-            {activeEvent.type === 'TAX' ? (mode === 'HOCA' ? 'BELGELERİ İBRAZ ET' : 'RÜŞVET VER') : activeEvent.type === 'STRIKE' ? (mode === 'HOCA' ? 'MUTABAKAT (-100$)' : 'BAKLAVA ISMARLA (-100$)') : (mode === 'HOCA' ? 'GÜVENLİĞİ SAĞLA' : 'EVRAKLARI YAK!')}
+            {activeEvent.type === 'TAX' ? 'BELGELERİ GÖSTER' : activeEvent.type === 'STRIKE' ? 'MUTABAKAT (-100$)' : 'EVRAKLARI YAK!'}
           </button>
         </div>
       )}
 
       {planeActive && <div style={{ position: 'absolute', top: '10%', left: '-100px', fontSize: '4rem', animation: 'fly 5.5s linear forwards', zIndex: 50 }}>✈️</div>}
-      {duba && <div onClick={() => { if (!duba.dropping) { playSfx('collect'); setCash(c => c + 50); setDuba(null); addLog("💰 Duba toplandı!"); } }} style={{ position: 'absolute', left: `${duba.x}%`, top: `${duba.y}%`, zIndex: 60, animation: duba.dropping ? 'drop 1.5s ease-out forwards' : 'float 3s infinite ease-in-out' }}><div style={{ position: 'relative' }}>{duba.dropping && <span style={{ position: 'absolute', top: '-40px', left: '10px', fontSize: '2rem' }}>🪂</span>}<DubaIcon /></div></div>}
+      {duba && <div onClick={() => { if (!duba.dropping) { playSfx('collect'); setCash(c => c + 50); setDuba(null); addLog("💰 Duba alındı!"); } }} style={{ position: 'absolute', left: `${duba.x}%`, top: `${duba.y}%`, zIndex: 60, animation: duba.dropping ? 'drop 1.5s ease-out forwards' : 'float 3s infinite ease-in-out' }}><DubaIcon /></div>}
 
-      <header style={{ position: 'relative', zIndex: 10, marginBottom: '30px' }}>
-        <h1 style={{ color: '#3b82f6', margin: 0 }}>{mode === "HOCA" ? "Süreç Yönetim Paneli" : "Necmi Holding A.Ş."}</h1>
+      <header style={{ position: 'relative', zIndex: 10, marginBottom: '20px' }}>
+        <h1 style={{ color: '#3b82f6', margin: 0 }}>{mode === "HOCA" ? "Süreç Yönetimi" : "Necmi Holding A.Ş."}</h1>
       </header>
 
       <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '30px', position: 'relative', zIndex: 10 }}>
@@ -191,27 +185,25 @@ function App() {
         <div style={card}>STOK<br/><span style={{ color: '#eab308', fontSize: '1.8rem', fontWeight: 'bold' }}>{stock.toFixed(1)} / {levels.factorySize * 40}</span></div>
       </div>
 
-      <button onClick={() => { if (!strikeActive && stock < levels.factorySize * 40) { setCash(c => c + 10); setStock(s => s + levels.clickPower); playSfx('click'); } }} style={{ padding: '20px 50px', background: strikeActive ? '#475569' : '#3b82f6', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '40px', position: 'relative', zIndex: 10 }}>
-        {strikeActive ? "⚠️ ÜRETİM DURDU" : "🏭 ÜRETİMİ TETİKLE"}
+      <button onClick={() => { if (!strikeActive && stock < levels.factorySize * 40) { setCash(c => c + 10); setStock(s => s + levels.clickPower); playSfx('click'); } }} style={{ padding: '20px 50px', background: strikeActive ? '#475569' : '#3b82f6', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '30px', position: 'relative', zIndex: 10 }}>
+        {strikeActive ? "⚠️ GREV" : "🏭 ÜRET"}
       </button>
 
       <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', position: 'relative', zIndex: 10 }}>
         {(Object.keys(upgInfo) as Array<keyof typeof levels>).map(k => {
           const cost = getCost(k);
           return (
-            <div key={k} onClick={() => { if (cash >= cost) { setCash(c => c - cost); setLevels(l => ({ ...l, [k]: l[k] + 1 })); playSfx('buy'); addLog(`${upgInfo[k].title} yükseltildi.`); } }} style={{ ...card, cursor: 'pointer' }}>
-              <div style={{ color: '#818cf8', fontWeight: 'bold' }}>{upgInfo[k].title} (Lv {levels[k]})</div>
-              <div style={{ fontSize: '0.8rem', color: '#94a3b8', minHeight: '35px' }}>{mode === "HOCA" ? upgInfo[k].hocaDesc : upgInfo[k].necmiDesc}</div>
+            <div key={k} onClick={() => { if (cash >= cost) { setCash(c => c - cost); setLevels(l => ({ ...l, [k]: l[k] + 1 })); playSfx('buy'); } }} style={{ ...card, cursor: 'pointer' }}>
+              <div style={{ color: '#818cf8', fontWeight: 'bold' }}>{upgInfo[k].title}</div>
               <div style={{ color: '#22c55e', fontSize: '1.3rem', marginTop: '10px' }}>${cost.toLocaleString()}</div>
             </div>
           );
         })}
       </div>
 
-      {nargile && mode === "NECMI" && <div onClick={() => { playSfx('collect'); setCash(c => c + 200); setNargile(null); }} style={{ position: 'absolute', left: `${nargile.x}%`, top: `${nargile.y}%`, background: '#f59e0b', padding: '10px 20px', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 70, animation: 'pulse 1s infinite' }}>🌬️ NARGİLE ÇEK (+200$)</div>}
+      {nargile && mode === "NECMI" && <div onClick={() => { playSfx('collect'); setCash(c => c + 200); setNargile(null); }} style={{ position: 'absolute', left: `${nargile.x}%`, top: `${nargile.y}%`, background: '#f59e0b', padding: '10px 20px', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 70, animation: 'pulse 1s infinite' }}>🌬️ NARGİLE (+200$)</div>}
 
-      <div style={{ marginTop: '40px', opacity: 0.6, fontSize: '0.9rem' }}>{logs.map(log => <div key={log.id}>{log.text}</div>)}</div>
-      <footer style={{ marginTop: '20px', color: '#334155' }}>v4.2.0 - {mode} MODE</footer>
+      <div style={{ marginTop: '30px', opacity: 0.5, fontSize: '0.9rem' }}>{logs.map(log => <div key={log.id}>{log.text}</div>)}</div>
       <style>{`
         @keyframes fly { 0% { left: -150px; } 100% { left: 110%; } }
         @keyframes drop { 0% { transform: translateY(-600px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
