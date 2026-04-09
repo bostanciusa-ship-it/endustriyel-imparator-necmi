@@ -1,45 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// --- SES MOTORU (Web Audio API) ---
+// --- SES MOTORU (Düşük Gecikme) ---
 const playSfx = (type: 'click' | 'buy' | 'collect' | 'plane') => {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
+    osc.connect(gain); gain.connect(ctx.destination);
     const now = ctx.currentTime;
-
     if (type === 'click') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(150, now);
-      gain.gain.setValueAtTime(0.05, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-      osc.start(); osc.stop(now + 0.1);
+      osc.frequency.setValueAtTime(150, now); gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1); osc.start(); osc.stop(now + 0.1);
     } else if (type === 'buy') {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(440, now);
-      osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
-      gain.gain.setValueAtTime(0.03, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.frequency.setValueAtTime(440, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
+      gain.gain.setValueAtTime(0.03, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
       osc.start(); osc.stop(now + 0.3);
     } else if (type === 'collect') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(660, now);
-      gain.gain.setValueAtTime(0.04, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-      osc.start(); osc.stop(now + 0.2);
+      osc.frequency.setValueAtTime(660, now); gain.gain.setValueAtTime(0.04, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2); osc.start(); osc.stop(now + 0.2);
     } else if (type === 'plane') {
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(40, now);
-      osc.frequency.linearRampToValueAtTime(60, now + 2.5);
-      osc.frequency.linearRampToValueAtTime(40, now + 5);
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.02, now + 2.5);
-      gain.gain.linearRampToValueAtTime(0, now + 5);
-      osc.start(); osc.stop(now + 5);
+      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(50, now);
+      gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.02, now + 2.5);
+      gain.gain.linearRampToValueAtTime(0, now + 5); osc.start(); osc.stop(now + 5);
     }
   } catch (e) {}
 };
@@ -54,11 +36,7 @@ const DubaCizimi = () => (
 
 const BackgroundGrid = () => (
   <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.12 }}>
-    <defs>
-      <pattern id="dotPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-        <circle cx="2" cy="2" r="1.5" fill="#3b82f6" />
-      </pattern>
-    </defs>
+    <defs><pattern id="dotPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="#3b82f6" /></pattern></defs>
     <rect width="100%" height="100%" fill="url(#dotPattern)" />
   </svg>
 );
@@ -78,52 +56,71 @@ function App() {
   const lastNargileTime = useRef(Date.now());
   const lastPlaneTime = useRef(Date.now());
 
-  const addLog = (msg: string) => {
-    _setLogs(prev => [{ id: Date.now(), text: msg }, ...prev].slice(0, 4));
-  };
+  const addLog = (msg: string) => _setLogs(prev => [{ id: Date.now(), text: msg }, ...prev].slice(0, 4));
 
   const checkPass = () => {
     playSfx('click');
-    if (pass.toUpperCase() === "B123B123") { setMode("NECMI"); setIsLogged(true); }
-    else if (pass === "3689") { setMode("HOCA"); setIsLogged(true); }
+    const input = pass.toUpperCase();
+    if (input === "B123B123") { setMode("NECMI"); setIsLogged(true); }
+    else if (input === "3689") { setMode("HOCA"); setIsLogged(true); }
     else { alert("Erişim Reddedildi!"); setPass(""); }
   };
 
   const upgInfo = {
-    clickPower: { title: "🚀 TIK GÜCÜ", hocaDesc: "Endüstriyel manuel verimlilik.", necmiDesc: "Daha sert bas, daha çok kazan.", base: 200 },
-    autoWorker: { title: "🤖 İŞÇİ", hocaDesc: "Süreç otomasyon birimi.", necmiDesc: "Çok yavaş bir köle.", base: 500 },
-    marketing: { title: "📈 PAZARLAMA", hocaDesc: "Kurumsal tanıtım stratejisi.", necmiDesc: "Yalan söylemeyi öğren.", base: 600 },
-    factorySize: { title: "🏗️ DEPO", hocaDesc: "Lojistik depolama alanı.", necmiDesc: "Holdinge yer aç patron.", base: 650 }
+    clickPower: { title: "🚀 TIK GÜCÜ", hocaDesc: "Manuel üretim verimliliği.", necmiDesc: "Daha sert bas.", base: 200 },
+    autoWorker: { title: "🤖 İŞÇİ", hocaDesc: "Süreç otomasyonu.", necmiDesc: "Çok yavaş bir köle.", base: 500 },
+    marketing: { title: "📈 PAZARLAMA", hocaDesc: "Satış devir hızını artırır.", necmiDesc: "Mallar elinde kalmasın.", base: 600 },
+    factorySize: { title: "🏗️ DEPO", hocaDesc: "Lojistik kapasite.", necmiDesc: "Yer aç patron.", base: 650 }
   };
 
-  const getCost = (type: keyof typeof _levels) => Math.floor(upgInfo[type].base * Math.pow(1.25, _levels[type] === 0 ? 0 : (type === 'autoWorker' ? _levels[type] : _levels[type] - 1)));
+  const getCost = (type: keyof typeof _levels) => {
+    const base = upgInfo[type].base;
+    const lv = _levels[type];
+    return Math.floor(base * Math.pow(1.25, lv === 0 ? 0 : (type === 'autoWorker' ? lv : lv - 1)));
+  };
 
   const handleWork = () => {
     if (_p < _levels.factorySize * 40) {
       playSfx('click');
-      _sc(p => p + (_levels.clickPower * 10));
-      _sp(p => p + 1);
+      _sc(p => p + 10); 
+      _sp(p => Math.min(p + _levels.clickPower, _levels.factorySize * 40));
     }
   };
 
   useEffect(() => {
     if (!isLogged) return;
     const tick = setInterval(() => {
-      if (_levels.autoWorker > 0) _sp(p => (p < (_levels.factorySize * 40) ? p + (_levels.autoWorker * 0.3) : p));
+      // 1. İşçi Üretimi
+      _sp(p => {
+        if (_levels.autoWorker > 0 && p < (_levels.factorySize * 40)) {
+          return p + (_levels.autoWorker * 0.2);
+        }
+        return p;
+      });
+      
+      // 2. Pazarlama & Satış
       _sc(c => {
-        if (_p >= 1) { _sp(s => s - 1); return c + (10 + (_levels.marketing * 5)); }
+        let currentStock = 0;
+        _sp(s => { currentStock = s; return s; }); // Geçici stok kontrolü
+        if (currentStock >= 0.1) {
+          const salesRate = 0.8 + (_levels.marketing * 0.4); 
+          const actualSale = Math.min(currentStock, salesRate);
+          _sp(s => Math.max(0, s - actualSale));
+          return c + (actualSale * 15);
+        }
         return c;
       });
+
+      // 3. Etkinlikler (Duba & Nargile)
       const now = Date.now();
       if (mode === "NECMI" && now - lastNargileTime.current > 120000 && !_nargile) {
         _setNargile({ id: Date.now(), x: Math.random() * 80 + 5, y: Math.random() * 55 + 15 });
-        playSfx('collect');
         addLog("🌬️ Nadir Nargile borusu belirdi!");
         setTimeout(() => { _setNargile(null); lastNargileTime.current = Date.now(); }, 7000);
       }
+      
       if (now - lastPlaneTime.current > 45000 && !_plane) {
-        _setPlane(true);
-        playSfx('plane');
+        _setPlane(true); playSfx('plane');
         addLog(mode === "HOCA" ? "✈️ Hava lojistiği bölgeye giriş yaptı." : "✈️ Kargo uçağı süzülüyor...");
         setTimeout(() => {
           _setDuba({ id: Date.now(), x: Math.random() * 60 + 20, y: Math.random() * 40 + 30, dropping: true });
@@ -134,7 +131,7 @@ function App() {
       }
     }, 1000);
     return () => clearInterval(tick);
-  }, [isLogged, _p, mode, _levels, _plane]);
+  }, [isLogged, mode, _levels, _plane, _nargile]);
 
   const glassCard = { background: 'rgba(22, 22, 30, 0.7)', backdropFilter: 'blur(10px)', padding: '20px', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)' };
 
@@ -145,8 +142,7 @@ function App() {
         <div style={{...glassCard, padding: '40px', textAlign: 'center', zIndex: 10}}>
           <h2 style={{letterSpacing: '2px', marginBottom: '20px'}}>HOLDİNG ERİŞİM PANELİ</h2>
           <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Erişim Kodu..." style={{ padding: '15px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', border: '1px solid #333', color: 'white', marginBottom: '10px', textAlign: 'center' }} />
-          <br/>
-          <button onClick={checkPass} style={{ padding: '12px 40px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', width: '100%' }}>GİRİŞ</button>
+          <br/><button onClick={checkPass} style={{ padding: '12px 40px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', width: '100%' }}>GİRİŞ</button>
         </div>
       </div>
     );
@@ -159,7 +155,7 @@ function App() {
       {_plane && <div style={{ position: 'absolute', top: '15%', left: '-150px', fontSize: '5rem', animation: 'planeFly 5s linear forwards', zIndex: 100 }}>✈️</div>}
 
       {_duba && (
-        <div onClick={() => { if(!_duba.dropping) { playSfx('collect'); _sc(p => p + 1); _setDuba(null); addLog(mode === "HOCA" ? "✅ Verimlilik bonusu alındı." : "🚧 Duba toplandı, +1$!"); } }} 
+        <div onClick={() => { if(!_duba.dropping) { playSfx('collect'); _sc(p => p + 1); _setDuba(null); addLog(mode === "HOCA" ? "✅ Verimlilik bonusu alındı." : "🚧 Duba toplandı!"); } }} 
              style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, cursor: _duba.dropping ? 'default' : 'pointer', zIndex: 100, animation: _duba.dropping ? 'dubaDrop 1.5s ease-out forwards' : 'bob 2s infinite' }}>
           <div style={{ position: 'relative' }}>{_duba.dropping && <span style={{ position: 'absolute', top: '-40px', left: '10px', fontSize: '2rem' }}>🪂</span>}<DubaCizimi /></div>
         </div>
@@ -175,7 +171,7 @@ function App() {
         <div style={glassCard}>STOK<br/><span style={{color: '#fbbf24', fontSize: '1.6rem'}}>{_p.toFixed(1)} / {(_levels.factorySize * 40)}</span></div>
       </div>
 
-      <button onClick={handleWork} style={{ padding: '20px 60px', fontSize: '1.4rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '30px', position: 'relative', zIndex: 10 }}>🏭 ÜRETİMİ BAŞLAT</button>
+      <button onClick={handleWork} style={{ padding: '20px 60px', fontSize: '1.4rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '30px', position: 'relative', zIndex: 10, boxShadow: '0 5px 20px rgba(59,130,246,0.3)' }}>🏭 ÜRETİMİ BAŞLAT</button>
 
       {_nargile && mode === "NECMI" && (
         <div onClick={() => { playSfx('collect'); _sc(p => p + 150); _setNargile(null); addLog("🌬️ +150$ Nargile keyfi!"); }} 
@@ -187,11 +183,12 @@ function App() {
           <button key={key} onClick={() => {
             const cost = getCost(key);
             if (_c >= cost) { 
-              playSfx('buy'); _sc(p => p - cost); 
+              playSfx('buy'); 
+              _sc(p => p - cost); 
               _setLevels(p => ({ ...p, [key]: p[key] + 1 })); 
               addLog(`${upgInfo[key].title} yükseltildi.`);
             }
-          }} style={{...glassCard, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)'}}>
+          }} style={{...glassCard, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', transition: 'transform 0.1s'}} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
             <div style={{fontWeight: 'bold', color: '#6366f1'}}>{upgInfo[key].title} (Lv {_levels[key]})</div>
             <div style={{fontSize: '0.75rem', color: '#9ca3af', marginTop: '5px', minHeight: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{mode === "HOCA" ? upgInfo[key].hocaDesc : upgInfo[key].necmiDesc}</div>
             <div style={{color: '#4ade80', marginTop: '10px', fontSize: '1.2rem'}}>${getCost(key).toLocaleString()}</div>
@@ -199,15 +196,20 @@ function App() {
         ))}
       </div>
 
-      <div style={{ marginTop: '30px', minHeight: '80px', position: 'relative', zIndex: 10 }}>{_logs.map(log => (<div key={log.id} style={{ color: '#4b5563', fontSize: '0.85rem', marginBottom: '4px' }}>{log.text}</div>))}</div>
+      <div style={{ marginTop: '30px', minHeight: '80px', position: 'relative', zIndex: 10 }}>
+        {_logs.map(log => (<div key={log.id} style={{ color: '#4b5563', fontSize: '0.85rem', marginBottom: '4px', animation: 'fadeIn 0.5s' }}>{log.text}</div>))}
+      </div>
 
-      <footer style={{ marginTop: '30px', color: '#3f3f46', fontSize: '0.8rem', position: 'relative', zIndex: 10 }}>{mode === "NECMI" ? `NECMI HOLDING v3.9.6 - MODE: ${mode}` : "NECMI HOLDING - Endüstriyel Simülasyon"}</footer>
+      <footer style={{ marginTop: '30px', color: '#3f3f46', fontSize: '0.8rem', position: 'relative', zIndex: 10 }}>
+        {mode === "NECMI" ? `NECMI HOLDING v4.0.0 - MODE: ${mode}` : "NECMI HOLDING - Endüstriyel Simülasyon"}
+      </footer>
 
       <style>{`
         @keyframes planeFly { 0% { left: -150px; } 100% { left: 110%; } }
         @keyframes dubaDrop { 0% { transform: translateY(-500px) scale(0.5); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
         @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
         @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </div>
   );
