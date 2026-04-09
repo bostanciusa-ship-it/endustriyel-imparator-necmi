@@ -1,10 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// ASLA PATLAMAYAN ÖZEL TASARIM SVG DUBA
 const DubaCizimi = () => (
-  <svg width="65" height="85" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <svg width="65" height="85" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0 0 10px rgba(255,165,0,0.5))' }}>
     <path d="M10 100 L90 100 L85 110 L15 110 Z" fill="#222" />
     <path d="M30 100 L40 20 L60 20 L70 100 Z" fill="#FF4500" />
     <path d="M36 52 L64 52 L67 68 L33 68 Z" fill="white" opacity="0.9" />
+  </svg>
+);
+
+// HAREKETLİ ARKA PLAN PARÇACIKLARI
+const BackgroundGrid = () => (
+  <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.2 }}>
+    <defs>
+      <pattern id="dotPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+        <circle cx="2" cy="2" r="1.5" fill="#3b82f6" />
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#dotPattern)" animation="drift 60s linear infinite" />
   </svg>
 );
 
@@ -83,7 +96,6 @@ function App() {
         return c;
       });
       const now = Date.now();
-      // NARGİLE SADECE NECMİ MODUNDA ÇIKAR
       if (mode === "NECMI" && now - lastNargileTime.current > 120000 && !_nargile) {
         _setNargile({ id: Date.now(), x: Math.random() * 80 + 5, y: Math.random() * 55 + 15 });
         setTimeout(() => { _setNargile(null); lastNargileTime.current = Date.now(); }, 7000);
@@ -101,26 +113,38 @@ function App() {
     setTimeout(() => { _setPlane(false); lastPlaneTime.current = Date.now(); }, 5000);
   };
 
+  // STİL OBJELERİ (Glassmorphism Efekti)
+  const panelStyle = { backgroundColor: '#0b0b0f', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'white', fontFamily: 'sans-serif', position: 'relative' as 'relative', overflow: 'hidden' };
+  const inputStyle = { padding: '15px', borderRadius: '10px', border: '1px solid #333', marginBottom: '10px', textAlign: 'center' as 'center', background: 'rgba(255,255,255,0.05)', color: 'white' };
+  
+  const glassCard = { background: 'rgba(22, 22, 30, 0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', padding: '20px', borderRadius: '15px', minWidth: '140px', border: '1px solid rgba(255,255,255,0.08)' };
+  const upgCardStyle = { background: 'rgba(22, 22, 30, 0.4)', backdropFilter: 'blur(5px)', padding: '20px', borderRadius: '15px', color: 'white', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)', transition: 'all 0.3s' };
+
   if (!isLogged) {
     return (
-      <div style={{ backgroundColor: '#0b0b0f', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: 'white', fontFamily: 'sans-serif' }}>
-        <h2>HOLDİNG ERİŞİM PANELİ</h2>
-        <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Şifre Giriniz..." style={{ padding: '15px', borderRadius: '10px', border: 'none', marginBottom: '10px', textAlign: 'center' }} />
-        <button onClick={checkPass} style={{ padding: '10px 30px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }}>GİRİŞ YAP</button>
+      <div style={panelStyle}>
+        <BackgroundGrid />
+        <div style={{...glassCard, padding: '40px', textAlign: 'center', zIndex: 10}}>
+          <h2 style={{letterSpacing: '2px', marginBottom: '20px'}}>HOLDİNG ERİŞİM PANELİ</h2>
+          <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Şifre Giriniz..." style={inputStyle} />
+          <button onClick={checkPass} style={{ padding: '12px 40px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', width: '100%' }}>GİRİŞ YAP</button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: '#0d0d12', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
-      <header>
-        <h1 style={{ color: '#3b82f6' }}>Necmi Holding {mode === "HOCA" ? "Eğitim Portalı" : "BETA 🚧"}</h1>
-        <p style={{color: '#4b5563'}}>{mode === "HOCA" ? "Endüstriyel Verimlilik Simülasyonu" : "Raconunu Koy, Paranı Al"}</p>
+    <div style={{ color: 'white', padding: '20px', textAlign: 'center', backgroundColor: '#09090b', minHeight: '100vh', fontFamily: 'sans-serif', position: 'relative', overflow: 'hidden' }}>
+      <BackgroundGrid />
+      
+      <header style={{position: 'relative', zIndex: 10}}>
+        <h1 style={{ color: '#3b82f6', textShadow: '0 0 15px rgba(59,130,246,0.5)' }}>Necmi Holding {mode === "HOCA" ? "Eğitim Portalı" : "BETA 🚧"}</h1>
+        <p style={{color: '#6b7280', fontSize: '0.9rem', letterSpacing: '1px'}}>{mode === "HOCA" ? "Endüstriyel Verimlilik Simülasyonu" : "Raconunu Koy, Paranı Al"}</p>
       </header>
 
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', margin: '30px 0' }}>
-        <div style={statCard}>KASA<br/>${_c.toLocaleString()}</div>
-        <div style={statCard}>STOK<br/>{_p.toFixed(1)} / {(_levels.factorySize * 40)}</div>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', margin: '30px 0', position: 'relative', zIndex: 10 }}>
+        <div style={glassCard}>KASA<br/><span style={{color: '#4ade80', fontSize: '1.6rem', fontWeight: 'bold'}}>${_c.toLocaleString()}</span></div>
+        <div style={glassCard}>STOK<br/><span style={{color: '#fbbf24', fontSize: '1.6rem', fontWeight: 'bold'}}>{_p.toFixed(1)} / {(_levels.factorySize * 40)}</span></div>
       </div>
 
       <button onClick={handleWork} style={mainBtn}>🏭 ÜRETİMİ BAŞLAT</button>
@@ -130,36 +154,36 @@ function App() {
       )}
 
       {_duba && (
-        <div onClick={() => { _sc(p => p + 1); _setDuba(null); }} style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, cursor: 'pointer', animation: 'bob 2s infinite' }}>
+        <div onClick={() => { _sc(p => p + 1); _setDuba(null); }} style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, cursor: 'pointer', zIndex: 100, animation: 'bob 2s infinite' }}>
           <DubaCizimi />
         </div>
       )}
 
-      <div style={{ maxWidth: '950px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+      <div style={{ maxWidth: '950px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', position: 'relative', zIndex: 10 }}>
         {(Object.keys(upgInfo) as Array<keyof typeof upgInfo>).map((key) => (
-          <button key={key} onClick={() => buyUpgrade(key)} style={upgCard}>
+          <button key={key} onClick={() => buyUpgrade(key)} style={upgCardStyle} className="upgrade-card">
             <div style={{fontWeight: 'bold', color: '#6366f1'}}>{upgInfo[key].title} (Lv {_levels[key]})</div>
-            <div style={{fontSize: '0.7rem', color: '#9ca3af'}}>{mode === "HOCA" ? upgInfo[key].hocaDesc : upgInfo[key].necmiDesc}</div>
-            <div style={{color: '#4ade80', marginTop: '5px'}}>${getCost(key).toLocaleString()}</div>
+            <div style={{fontSize: '0.7rem', color: '#9ca3af', fontStyle: 'italic'}}>{mode === "HOCA" ? upgInfo[key].hocaDesc : upgInfo[key].necmiDesc}</div>
+            <div style={{color: '#4ade80', marginTop: '8px', fontSize: '1.1rem'}}>${getCost(key).toLocaleString()}</div>
           </button>
         ))}
       </div>
 
-      <footer style={{ marginTop: '50px', color: '#374151', fontSize: '0.8rem' }}>
-        NECMI HOLDING v3.9.0 - MODE: {mode}
+      <footer style={{ marginTop: '50px', color: '#3f3f46', fontSize: '0.8rem', position: 'relative', zIndex: 10 }}>
+        NECMI HOLDING v3.9.1 - MODE: {mode}
       </footer>
 
       <style>{`
         @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-30px); } }
-        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); box-shadow: 0 0 20px #fbbf24; } }
+        @keyframes pulse { from { transform: scale(1); box-shadow: 0 0 10px #fbbf24; } to { transform: scale(1.1); box-shadow: 0 0 30px #fbbf24; } }
+        @keyframes drift { from { transform: translate(0, 0); } to { transform: translate(40px, 40px); } }
+        .upgrade-card:hover { transform: translateY(-5px); background: rgba(22, 22, 30, 0.7) !important; border-color: rgba(59,130,246,0.3) !important; }
       `}</style>
     </div>
   );
 }
 
-const statCard = { background: '#16161e', padding: '20px', borderRadius: '15px', minWidth: '140px', border: '1px solid #23232e' };
-const mainBtn = { padding: '20px 50px', fontSize: '1.4rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '30px' };
-const upgCard = { padding: '20px', background: '#16161e', border: '1px solid #2d2d39', borderRadius: '15px', color: 'white', cursor: 'pointer' };
-const nargileStyle = (x:number, y:number): React.CSSProperties => ({ position: 'absolute', left: `${x}%`, top: `${y}%`, padding: '15px 25px', backgroundColor: '#fbbf24', color: '#000', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', animation: 'pulse 0.8s infinite alternate' });
+const mainBtn = { padding: '20px 60px', fontSize: '1.4rem', background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: 'white', border: 'none', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '30px', position: 'relative' as 'relative', zIndex: 10, boxShadow: '0 10px 20px rgba(0,0,0,0.3)' };
+const nargileStyle = (x:number, y:number): React.CSSProperties => ({ position: 'absolute', left: `${x}%`, top: `${y}%`, padding: '15px 30px', backgroundColor: '#fbbf24', color: '#000', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 101, animation: 'pulse 0.8s infinite alternate' });
 
 export default App;
