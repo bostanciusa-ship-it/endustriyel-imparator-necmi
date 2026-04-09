@@ -1,5 +1,49 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// --- SES MOTORU (Web Audio API) ---
+const playSfx = (type: 'click' | 'buy' | 'collect' | 'plane') => {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+
+    if (type === 'click') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(150, now);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      osc.start(); osc.stop(now + 0.1);
+    } else if (type === 'buy') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
+      gain.gain.setValueAtTime(0.03, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(); osc.stop(now + 0.3);
+    } else if (type === 'collect') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(660, now);
+      gain.gain.setValueAtTime(0.04, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.start(); osc.stop(now + 0.2);
+    } else if (type === 'plane') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(40, now);
+      osc.frequency.linearRampToValueAtTime(60, now + 2.5);
+      osc.frequency.linearRampToValueAtTime(40, now + 5);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.02, now + 2.5);
+      gain.gain.linearRampToValueAtTime(0, now + 5);
+      osc.start(); osc.stop(now + 5);
+    }
+  } catch (e) {}
+};
+
 const DubaCizimi = () => (
   <svg width="60" height="75" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" style={{ filter: 'drop-shadow(0 0 12px rgba(255,165,0,0.6))' }}>
     <path d="M10 100 L90 100 L85 110 L15 110 Z" fill="#222" />
@@ -9,7 +53,7 @@ const DubaCizimi = () => (
 );
 
 const BackgroundGrid = () => (
-  <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.15 }}>
+  <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', top: 0, left: 0, opacity: 0.12 }}>
     <defs>
       <pattern id="dotPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
         <circle cx="2" cy="2" r="1.5" fill="#3b82f6" />
@@ -23,29 +67,27 @@ function App() {
   const [pass, setPass] = useState("");
   const [isLogged, setIsLogged] = useState(false);
   const [mode, setMode] = useState<"HOCA" | "NECMI" | null>(null);
-  
   const [_c, _sc] = useState(250); 
   const [_p, _sp] = useState(0);   
-  const [_logs, _setLogs] = useState<{id: number, text: string}[]>([]); // LOGLAR GERİ GELDİ
+  const [_logs, _setLogs] = useState<{id: number, text: string}[]>([]);
   const [_nargile, _setNargile] = useState<{id: number, x: number, y: number} | null>(null);
   const [_plane, _setPlane] = useState(false); 
   const [_duba, _setDuba] = useState<{id: number, x: number, y: number, dropping: boolean} | null>(null);
+  const [_levels, _setLevels] = useState({ clickPower: 1, autoWorker: 0, marketing: 1, factorySize: 1 });
 
   const lastNargileTime = useRef(Date.now());
   const lastPlaneTime = useRef(Date.now());
 
   const addLog = (msg: string) => {
-    const newLog = { id: Date.now(), text: msg };
-    _setLogs(prev => [newLog, ...prev].slice(0, 4)); // Son 4 kaydı tutar
+    _setLogs(prev => [{ id: Date.now(), text: msg }, ...prev].slice(0, 4));
   };
 
   const checkPass = () => {
+    playSfx('click');
     if (pass.toUpperCase() === "B123B123") { setMode("NECMI"); setIsLogged(true); }
     else if (pass === "3689") { setMode("HOCA"); setIsLogged(true); }
     else { alert("Erişim Reddedildi!"); setPass(""); }
   };
-
-  const [_levels, _setLevels] = useState({ clickPower: 1, autoWorker: 0, marketing: 1, factorySize: 1 });
 
   const upgInfo = {
     clickPower: { title: "🚀 TIK GÜCÜ", hocaDesc: "Endüstriyel manuel verimlilik.", necmiDesc: "Daha sert bas, daha çok kazan.", base: 200 },
@@ -54,33 +96,14 @@ function App() {
     factorySize: { title: "🏗️ DEPO", hocaDesc: "Lojistik depolama alanı.", necmiDesc: "Holdinge yer aç patron.", base: 650 }
   };
 
-  const getCost = (type: keyof typeof _levels) => {
-    const base = upgInfo[type].base;
-    const lv = _levels[type];
-    const effectiveLv = lv === 0 ? 0 : (type === 'autoWorker' ? lv : lv - 1);
-    return Math.floor(base * Math.pow(1.25, effectiveLv));
-  };
+  const getCost = (type: keyof typeof _levels) => Math.floor(upgInfo[type].base * Math.pow(1.25, _levels[type] === 0 ? 0 : (type === 'autoWorker' ? _levels[type] : _levels[type] - 1)));
 
-  const spawnPlaneAndDuba = () => {
-    if (_plane) return;
-    _setPlane(true);
-    addLog(mode === "HOCA" ? "✈️ Hava lojistiği bölgeye giriş yaptı." : "✈️ Kargo uçağı süzülüyor...");
-    
-    setTimeout(() => {
-      const dropX = Math.random() * 60 + 20;
-      const dropY = Math.random() * 40 + 30;
-      _setDuba({ id: Date.now(), x: dropX, y: dropY, dropping: true });
-      addLog(mode === "HOCA" ? "📦 Ekipman sevkiyatı gerçekleştirildi." : "📦 Duba aşağı salındı!");
-      
-      setTimeout(() => {
-        _setDuba(prev => prev ? { ...prev, dropping: false } : null);
-      }, 1500);
-    }, 2500);
-
-    setTimeout(() => {
-      _setPlane(false);
-      lastPlaneTime.current = Date.now();
-    }, 5000);
+  const handleWork = () => {
+    if (_p < _levels.factorySize * 40) {
+      playSfx('click');
+      _sc(p => p + (_levels.clickPower * 10));
+      _sp(p => p + 1);
+    }
   };
 
   useEffect(() => {
@@ -91,22 +114,29 @@ function App() {
         if (_p >= 1) { _sp(s => s - 1); return c + (10 + (_levels.marketing * 5)); }
         return c;
       });
-      
       const now = Date.now();
       if (mode === "NECMI" && now - lastNargileTime.current > 120000 && !_nargile) {
         _setNargile({ id: Date.now(), x: Math.random() * 80 + 5, y: Math.random() * 55 + 15 });
+        playSfx('collect');
         addLog("🌬️ Nadir Nargile borusu belirdi!");
         setTimeout(() => { _setNargile(null); lastNargileTime.current = Date.now(); }, 7000);
       }
-      
       if (now - lastPlaneTime.current > 45000 && !_plane) {
-        spawnPlaneAndDuba();
+        _setPlane(true);
+        playSfx('plane');
+        addLog(mode === "HOCA" ? "✈️ Hava lojistiği bölgeye giriş yaptı." : "✈️ Kargo uçağı süzülüyor...");
+        setTimeout(() => {
+          _setDuba({ id: Date.now(), x: Math.random() * 60 + 20, y: Math.random() * 40 + 30, dropping: true });
+          addLog(mode === "HOCA" ? "📦 Ekipman sevkiyatı gerçekleştirildi." : "📦 Duba aşağı salındı!");
+          setTimeout(() => _setDuba(prev => prev ? { ...prev, dropping: false } : null), 1500);
+        }, 2500);
+        setTimeout(() => { _setPlane(false); lastPlaneTime.current = Date.now(); }, 5000);
       }
     }, 1000);
     return () => clearInterval(tick);
   }, [isLogged, _p, mode, _levels, _plane]);
 
-  const glassCard = { background: 'rgba(22, 22, 30, 0.7)', backdropFilter: 'blur(10px)', padding: '20px', borderRadius: '15px', minWidth: '140px', border: '1px solid rgba(255,255,255,0.1)' };
+  const glassCard = { background: 'rgba(22, 22, 30, 0.7)', backdropFilter: 'blur(10px)', padding: '20px', borderRadius: '15px', border: '1px solid rgba(255,255,255,0.1)' };
 
   if (!isLogged) {
     return (
@@ -129,12 +159,9 @@ function App() {
       {_plane && <div style={{ position: 'absolute', top: '15%', left: '-150px', fontSize: '5rem', animation: 'planeFly 5s linear forwards', zIndex: 100 }}>✈️</div>}
 
       {_duba && (
-        <div onClick={() => { if(!_duba.dropping) { _sc(p => p + 1); _setDuba(null); addLog(mode === "HOCA" ? "✅ Verimlilik bonusu alındı." : "🚧 Duba toplandı, +1$!"); } }} 
+        <div onClick={() => { if(!_duba.dropping) { playSfx('collect'); _sc(p => p + 1); _setDuba(null); addLog(mode === "HOCA" ? "✅ Verimlilik bonusu alındı." : "🚧 Duba toplandı, +1$!"); } }} 
              style={{ position: 'absolute', left: `${_duba.x}%`, top: `${_duba.y}%`, cursor: _duba.dropping ? 'default' : 'pointer', zIndex: 100, animation: _duba.dropping ? 'dubaDrop 1.5s ease-out forwards' : 'bob 2s infinite' }}>
-          <div style={{ position: 'relative' }}>
-            {_duba.dropping && <span style={{ position: 'absolute', top: '-40px', left: '10px', fontSize: '2rem' }}>🪂</span>}
-            <DubaCizimi />
-          </div>
+          <div style={{ position: 'relative' }}>{_duba.dropping && <span style={{ position: 'absolute', top: '-40px', left: '10px', fontSize: '2rem' }}>🪂</span>}<DubaCizimi /></div>
         </div>
       )}
 
@@ -148,10 +175,10 @@ function App() {
         <div style={glassCard}>STOK<br/><span style={{color: '#fbbf24', fontSize: '1.6rem'}}>{_p.toFixed(1)} / {(_levels.factorySize * 40)}</span></div>
       </div>
 
-      <button onClick={() => { if(_p < _levels.factorySize * 40) { _sc(p => p + (_levels.clickPower * 10)); _sp(p => p + 1); } }} style={{ padding: '20px 60px', fontSize: '1.4rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '30px', position: 'relative', zIndex: 10 }}>🏭 ÜRETİMİ BAŞLAT</button>
+      <button onClick={handleWork} style={{ padding: '20px 60px', fontSize: '1.4rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '15px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '30px', position: 'relative', zIndex: 10 }}>🏭 ÜRETİMİ BAŞLAT</button>
 
       {_nargile && mode === "NECMI" && (
-        <div onClick={() => { _sc(p => p + 150); _setNargile(null); addLog("🌬️ +150$ Nargile keyfi!"); }} 
+        <div onClick={() => { playSfx('collect'); _sc(p => p + 150); _setNargile(null); addLog("🌬️ +150$ Nargile keyfi!"); }} 
              style={{ position: 'absolute', left: `${_nargile.x}%`, top: `${_nargile.y}%`, padding: '15px 30px', backgroundColor: '#fbbf24', color: '#000', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold', zIndex: 101, animation: 'pulse 0.8s infinite' }}>🌬️ NARGİLE BORUSU</div>
       )}
 
@@ -160,32 +187,21 @@ function App() {
           <button key={key} onClick={() => {
             const cost = getCost(key);
             if (_c >= cost) { 
-              _sc(p => p - cost); 
+              playSfx('buy'); _sc(p => p - cost); 
               _setLevels(p => ({ ...p, [key]: p[key] + 1 })); 
               addLog(`${upgInfo[key].title} yükseltildi.`);
             }
           }} style={{...glassCard, cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)'}}>
             <div style={{fontWeight: 'bold', color: '#6366f1'}}>{upgInfo[key].title} (Lv {_levels[key]})</div>
-            <div style={{fontSize: '0.75rem', color: '#9ca3af', marginTop: '5px', minHeight: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-               {mode === "HOCA" ? upgInfo[key].hocaDesc : upgInfo[key].necmiDesc}
-            </div>
+            <div style={{fontSize: '0.75rem', color: '#9ca3af', marginTop: '5px', minHeight: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{mode === "HOCA" ? upgInfo[key].hocaDesc : upgInfo[key].necmiDesc}</div>
             <div style={{color: '#4ade80', marginTop: '10px', fontSize: '1.2rem'}}>${getCost(key).toLocaleString()}</div>
           </button>
         ))}
       </div>
 
-      {/* LOJİSTİK LOGLARI GERİ GELDİ */}
-      <div style={{ marginTop: '30px', minHeight: '80px', position: 'relative', zIndex: 10 }}>
-        {_logs.map(log => (
-          <div key={log.id} style={{ color: '#4b5563', fontSize: '0.85rem', marginBottom: '4px', opacity: 0.8 }}>
-            {log.text}
-          </div>
-        ))}
-      </div>
+      <div style={{ marginTop: '30px', minHeight: '80px', position: 'relative', zIndex: 10 }}>{_logs.map(log => (<div key={log.id} style={{ color: '#4b5563', fontSize: '0.85rem', marginBottom: '4px' }}>{log.text}</div>))}</div>
 
-      <footer style={{ marginTop: '30px', color: '#3f3f46', fontSize: '0.8rem', position: 'relative', zIndex: 10 }}>
-        {mode === "NECMI" ? `NECMI HOLDING v3.9.5 - MODE: ${mode}` : "NECMI HOLDING - Endüstriyel Simülasyon"}
-      </footer>
+      <footer style={{ marginTop: '30px', color: '#3f3f46', fontSize: '0.8rem', position: 'relative', zIndex: 10 }}>{mode === "NECMI" ? `NECMI HOLDING v3.9.6 - MODE: ${mode}` : "NECMI HOLDING - Endüstriyel Simülasyon"}</footer>
 
       <style>{`
         @keyframes planeFly { 0% { left: -150px; } 100% { left: 110%; } }
