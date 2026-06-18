@@ -80,7 +80,7 @@ export default function App() {
   const [isStrikeActive, setIsStrikeActive] = useState(false);
   const [shipmentCountdown, setShipmentCountdown] = useState(3);
 
-  // --- REFLER ---
+  // --- REFLER (BUG-FREE LOJİSTİK İÇİN) ---
   const stateRef = useRef({ lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory });
   
   useEffect(() => {
@@ -239,12 +239,12 @@ export default function App() {
         <div style={{ position: 'absolute', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(0,0,0,0) 70%)', top: '10%', left: '20%' }}></div>
         <div style={{ position: 'absolute', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(249,115,22,0.08) 0%, rgba(0,0,0,0) 70%)', bottom: '10%', right: '15%' }}></div>
 
-        <div style={{ background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(16px)', padding: '50px 40px', borderRadius: '30px', border: loginError ? '2px solid #ef4444' : '2px solid #3b82f6', boxShadow: loginError ? '0 0 50px rgba(239, 68, 68, 0.25)' : '0 0 50px rgba(59, 130, 246, 0.25)', width: '420px', textAlign: 'center', zIndex: 10, transition: 'all 0.4s ease' }}>
+        <div style={{ background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(16px)', padding: '50px 40px', borderRadius: '30px', border: loginError ? '2px solid #ef4444' : '2px solid #3b82f6', boxShadow: loginError ? '0 0 50px rgba(239, 68, 68, 0.25)' : '0 0 50px rgba(59, 130, 246, 0.25)', width: '420px', textAlign: 'center', zIndex: 10 }}>
           
           <div style={{ marginBottom: '30px' }}>
             <div style={{ display: 'inline-block', fontSize: '3rem' }}>🏛️</div>
             <h1 style={{ fontSize: '2.2rem', margin: '10px 0 5px 0', fontWeight: 'bold', letterSpacing: '2px', background: 'linear-gradient(to right, #3b82f6, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>NECMİ HOLDİNG</h1>
-            <div style={{ fontSize: '0.8rem', color: '#64748b', letterSpacing: '4px' }}>SİBER ERP TERMİNALİ v4.6.1</div>
+            <div style={{ fontSize: '0.8rem', color: '#64748b', letterSpacing: '4px' }}>SİBER ERP TERMİNALİ v4.6.2</div>
           </div>
 
           <div style={{ background: '#090d16', padding: '12px', borderRadius: '12px', fontSize: '0.85rem', color: loginError ? '#f87171' : '#38bdf8', marginBottom: '25px', border: loginError ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(56,189,248,0.2)' }}>
@@ -280,16 +280,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* Global CSS Efekt Enjeksiyonu - VERCEL VITE GÜVENLİ SÜRÜM */}
-        <style dangerouslySetInnerHTML={{__html: `
-          @keyframes spin { to { transform: rotate(360deg); } }
-          @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-            100% { transform: translateY(0px); }
-          }
-          input:focus { border-color: #3b82f6 !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3) !important; }
-        `}} />
+        {/* ESBUILD TRANSFORM DOSTU GÜVENLİ CSS ENJEKSİYONU */}
+        <style dangerouslySetInnerHTML={{__html: "input:focus { border-color: #3b82f6 !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3) !important; }"}} />
       </div>
     );
   }
@@ -364,4 +356,30 @@ export default function App() {
           <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${Math.floor(500 * Math.pow(1.28, lvlAutomatedWorkers))}</div>
         </div>
 
-        <div onClick={purchaseLogisticsTruck} style={{ background: '#0f172a', padding: '25px', borderRadius: '20
+        <div onClick={purchaseLogisticsTruck} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '2px solid #fbbf24' }}>
+          <div style={{ color: '#fbbf24', fontSize: '0.8rem' }}>LOJİSTİK OPERASYONU</div>
+          <div style={{ fontSize: '1.2rem', margin: '5px 0' }}>🚚 YÜK KAMYONU (SEVİYE {lvlLogisticsTrucks})</div>
+          <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${Math.floor(550 * Math.pow(1.35, lvlLogisticsTrucks))}</div>
+          <small style={{ color: '#64748b' }}>Hız: +0.5 Adet / 3 Saniye</small>
+        </div>
+
+        <div onClick={expandMarketingDepth} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '1px solid #1e293b' }}>
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>PAZARLAMA DEPARTMANI</div>
+          <div style={{ fontSize: '1.2rem', margin: '5px 0' }}>REKLAM GÜCÜ (SEVİYE {lvlMarketingCampaigns})</div>
+          <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${Math.floor(600 * Math.pow(1.22, lvlMarketingCampaigns - 1))}</div>
+        </div>
+
+        <div onClick={expandWarehouseSpace} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '1px solid #1e293b' }}>
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>ALTYAPI VE DEPOLAMA</div>
+          <div style={{ fontSize: '1.2rem', margin: '5px 0' }}>DEPO HACMİ (SEVİYE {lvlStorageCapacity})</div>
+          <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${Math.floor(650 * Math.pow(1.20, lvlStorageCapacity - 1))}</div>
+        </div>
+
+      </div>
+
+      <footer style={{ marginTop: '60px', textAlign: 'center', color: '#334155', fontSize: '0.8rem' }}>
+        NECMİ HOLDİNG ERP SİSTEMİ v4.6.2 | Kriz Döngüsü: {incidentTimer}s
+      </footer>
+    </div>
+  );
+}
