@@ -57,6 +57,8 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [interfaceMode, setInterfaceMode] = useState<"HOCA" | "NECMI" | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false); // Yükleniyor efekti için
+  const [loginError, setLoginError] = useState(false);
 
   // --- EKONOMİK DURUMLAR ---
   const [totalCash, setTotalCash] = useState(250);
@@ -77,10 +79,7 @@ export default function App() {
   const [isStrikeActive, setIsStrikeActive] = useState(false);
   const [shipmentCountdown, setShipmentCountdown] = useState(3);
 
-  // ============================================================================
-  // 🔏 BUG FIX: CRITICAL STATE REFERENCES (useRef)
-  // Satış anında güncel seviyeleri ve borsa fiyatını kaçırmamak için referanslar
-  // ============================================================================
+  // --- REFLER ---
   const stateRef = useRef({ lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory });
   
   useEffect(() => {
@@ -88,15 +87,26 @@ export default function App() {
   }, [lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory]);
 
 
-  // --- GİRİŞ AKSİYONU ---
+  // --- GİRİŞ AKSİYONU (EFEKTLİ GİRİŞ) ---
   const executeLoginAction = () => {
     const sanitizedKey = passwordInput.trim().toUpperCase();
+    setLoginError(false);
+    
     if (sanitizedKey === "B123B123" || sanitizedKey === "3689") {
-      setInterfaceMode(sanitizedKey === "B123B123" ? "NECMI" : "HOCA");
-      setIsAuthenticated(true);
-      playSfx('buy');
+      setIsConnecting(true); // Yüklenme animasyonunu başlat
+      playSfx('click');
+      
+      // 1.5 saniye yapay yüklenme simülasyonu (Çok havalı duruyor)
+      setTimeout(() => {
+        setInterfaceMode(sanitizedKey === "B123B123" ? "NECMI" : "HOCA");
+        setIsAuthenticated(true);
+        setIsConnecting(false);
+        playSfx('buy');
+      }, 1500);
+      
     } else {
-      alert("YETKİSİZ ERİŞİM!");
+      playSfx('alert');
+      setLoginError(true);
     }
   };
 
@@ -155,13 +165,10 @@ export default function App() {
     playSfx('buy');
   };
 
-  // ============================================================================
-  // 🔥 HOLDİNG ANA MOTORU (GAME ENGINE)
-  // ============================================================================
+  // --- CORE GAME ENGINE ---
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    // BORSA DÖNGÜSÜ (5 Saniyede Bir)
     const marketFluxInterval = setInterval(() => {
       setCurrentMarketValue(oldPrice => {
         const volatility = (Math.random() * 8 - 4);
@@ -171,10 +178,7 @@ export default function App() {
       });
     }, 5000);
 
-    // SANİYELİK ENGINE TICK
     const systemHeartbeat = setInterval(() => {
-      
-      // 1. Otomatik Üretim Sistemi (İşçiler)
       if (!isStrikeActive) {
         setCurrentInventory(inventory => {
           const capacityLimit = lvlStorageCapacity * 40;
@@ -183,33 +187,24 @@ export default function App() {
         });
       }
 
-      // 2. BUG-FREE SATIŞ VE SEVKİYAT DÖNGÜSÜ (Her 3 Saniyede Bir)
       setShipmentCountdown(currentSec => {
         if (currentSec <= 1) {
-          // Güncel referans değerlerini çekiyoruz (Kilitlenme engellendi)
           const currentRefData = stateRef.current;
-          
-          // Formül: Sabit 1 adet + Reklam Bonusu + Kamyon Bonusu (0.5 gücünde)
           const unitsToSell = 1 + (currentRefData.lvlMarketingCampaigns * 0.25) + (currentRefData.lvlLogisticsTrucks * 0.5);
           
           setCurrentInventory(actualInventory => {
             const finalSoldAmount = Math.min(actualInventory, unitsToSell);
-            
             if (finalSoldAmount > 0) {
-              // Parayı kasaya güvenli bir şekilde ekle
               setTotalCash(cashPool => cashPool + (finalSoldAmount * currentRefData.currentMarketValue));
-              // Stoğu düşür
               return Math.max(0, actualInventory - finalSoldAmount);
             }
             return actualInventory;
           });
-
-          return 3; // Sevkiyat bitti, sayacı 3'e geri kur
+          return 3;
         }
         return currentSec - 1;
       });
 
-      // 3. Kriz Yönetim Sayacı
       if (!activeIncident) {
         setIncidentTimer(prevTime => {
           if (prevTime <= 1) {
@@ -224,7 +219,6 @@ export default function App() {
         });
       }
 
-      // Kriz Zaman Aşımı Kontrolü
       if (activeIncident && Date.now() > activeIncident.end) {
         setTotalCash(prev => Math.max(0, prev * 0.88));
         setActiveIncident(null);
@@ -232,86 +226,32 @@ export default function App() {
         setIncidentTimer(120);
         playSfx('alert');
       }
-
     }, 1000);
 
-    return () => {
-      clearInterval(marketFluxInterval);
-      clearInterval(systemHeartbeat);
-    };
+    return () => { clearInterval(marketFluxInterval); clearInterval(systemHeartbeat); };
   }, [isAuthenticated, isStrikeActive, activeIncident]);
 
-  // --- KULLANICI ARAYÜZÜ ---
+  // ============================================================================
+  // 🎭 GÖRSEL KATMAN (UI RENDER)
+  // ============================================================================
+  
+  // GÜZELLEŞTİRİLMİŞ GİRİŞ EKRANI (Arayüz Geliştirmesi)
   if (!isAuthenticated) {
     return (
-      <div style={{ backgroundColor: '#020617', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontFamily: 'monospace' }}>
-        <div style={{ background: '#0f172a', padding: '50px', borderRadius: '25px', border: '2px solid #3b82f6', boxShadow: '0 0 40px rgba(59, 130, 246, 0.3)' }}>
-          <h1 style={{ fontSize: '2rem', marginBottom: '10px' }}>NECMİ HOLDİNG V4.5.2</h1>
-          <p style={{ color: '#64748b', marginBottom: '30px' }}>SİSTEME ERİŞİM İÇİN YETKİ KODU GEREKLİ</p>
-          <input 
-            type="password" 
-            placeholder="ERİŞİM ŞİFRESİ" 
-            value={passwordInput}
-            onChange={(e) => setPasswordInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && executeLoginAction()}
-            style={{ width: '100%', padding: '15px', background: '#1e293b', border: 'none', color: '#3b82f6', borderRadius: '10px', fontSize: '1.2rem', textAlign: 'center' }}
-          />
-          <button onClick={executeLoginAction} style={{ width: '100%', padding: '15px', marginTop: '20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
-            PROTOKOLÜ BAŞLAT
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ backgroundColor: '#020617', minHeight: '100vh', color: '#f8fafc', fontFamily: 'Segoe UI, sans-serif', padding: '40px' }}>
-      
-      {/* HEADER PANELİ */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '20px', marginBottom: '40px' }}>
-        <div>
-          <h2 style={{ margin: 0, color: '#3b82f6', letterSpacing: '1px' }}>{interfaceMode === 'NECMI' ? "CEO YÖNETİM PANELİ" : "LOJİSTİK VE ANALİZ"}</h2>
-          <span style={{ color: '#64748b', fontSize: '0.9rem' }}>HOLDİNG STATUS: <span style={{ color: '#22c55e' }}>ONLINE</span></span>
-        </div>
+      <div style={{ backgroundColor: '#020617', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#f8fafc', fontFamily: 'monospace', overflow: 'hidden', position: 'relative' }}>
         
-        <div style={{ background: '#0f172a', padding: '15px 25px', borderRadius: '15px', border: `1px solid ${marketDirection === 'up' ? '#22c55e' : '#ef4444'}`, textAlign: 'right' }}>
-          <small style={{ color: '#64748b' }}>BORSA DEĞERİ</small>
-          <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: marketDirection === 'up' ? '#22c55e' : '#ef4444' }}>
-            ${currentMarketValue.toFixed(2)} {marketDirection === 'up' ? '▲' : '▼'}
+        {/* Arka Plandaki Havalı Işık Süzmeleri */}
+        <div style={{ position: 'absolute', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(0,0,0,0) 70%)', top: '10%', left: '20%' }}></div>
+        <div style={{ position: 'absolute', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(249,115,22,0.08) 0%, rgba(0,0,0,0) 70%)', bottom: '10%', right: '15%' }}></div>
+
+        <div style={{ background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(16px)', padding: '50px 40px', borderRadius: '30px', border: loginError ? '2px solid #ef4444' : '2px solid #3b82f6', boxShadow: loginError ? '0 0 50px rgba(239, 68, 68, 0.25)' : '0 0 50px rgba(59, 130, 246, 0.25)', width: '420px', textAlign: 'center', zIndex: 10, transition: 'all 0.4s ease' }}>
+          
+          {/* Logo Bölümü */}
+          <div style={{ marginBottom: '30px' }}>
+            <div style={{ display: 'inline-block', fontSize: '3rem', animation: 'float 3s infinite ease-in-out' }}>🏛️</div>
+            <h1 style={{ fontSize: '2.2rem', margin: '10px 0 5px 0', fontWeight: 'bold', letterSpacing: '2px', background: 'linear-gradient(to right, #3b82f6, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>NECMİ HOLDİNG</h1>
+            <div style={{ fontSize: '0.8rem', color: '#64748b', letterSpacing: '4px' }}>SİBER ERP TERMİNALİ v4.6</div>
           </div>
-        </div>
-      </header>
 
-      {/* ACİL DURUM PANELİ */}
-      {activeIncident && (
-        <div style={{ backgroundColor: '#7f1d1d', border: '2px solid #ef4444', padding: '25px', borderRadius: '20px', marginBottom: '40px', textAlign: 'center' }}>
-          <h2 style={{ margin: 0, color: '#fecaca' }}>⚠️ KRİZ TESPİT EDİLDİ: {activeIncident.title}</h2>
-          <button 
-            onClick={handleResolve} 
-            style={{ padding: '12px 40px', fontSize: '1.1rem', background: '#f8fafc', color: '#7f1d1d', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}
-          >
-            KRİZE MÜDAHALE ET {isStrikeActive && "(-100$)"}
-          </button>
-        </div>
-      )}
-
-      {/* İSTATİSTİKLER */}
-      <div style={{ display: 'flex', gap: '30px', marginBottom: '50px' }}>
-        <div style={{ flex: 1, background: '#0f172a', padding: '30px', borderRadius: '25px', border: '1px solid #1e293b', textAlign: 'center' }}>
-          <div style={{ color: '#64748b', marginBottom: '10px' }}>KASA BAKİYESİ</div>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', color: '#22c55e' }}>${Math.floor(totalCash).toLocaleString()}</div>
-        </div>
-        <div style={{ flex: 1, background: '#0f172a', padding: '30px', borderRadius: '25px', border: '1px solid #1e293b', textAlign: 'center' }}>
-          <div style={{ color: '#64748b', marginBottom: '10px' }}>STOK DURUMU</div>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', color: '#eab308' }}>{currentInventory.toFixed(1)} / {lvlStorageCapacity * 40}</div>
-          <div style={{ fontSize: '0.8rem', color: '#3b82f6', marginTop: '10px', fontWeight: 'bold' }}>🚚 SEVKİYATA KALAN SÜRE: {shipmentCountdown}sn</div>
-        </div>
-      </div>
-
-      {/* ÜRETİM BUTONU */}
-      <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-        <button 
-          onClick={() => { if(!isStrikeActive && currentInventory < (lvlStorageCapacity * 40)) { setCurrentInventory(prev => Math.min(prev + lvlManualProduction, lvlStorageCapacity * 40)); playSfx('click'); } }}
-          style={{ 
-            padding: '35px 100px', fontSize: '1.8rem', fontWeight: 'bold', borderRadius: '25px', border: 'none',
-            backgroundColor: (isStrikeActive || currentInventory >= lvlStorageCapacity * 40
+          {/* Durum Mesajları */}
+          <div style={{ background: '#090d16', padding: '12px', borderRadius: '12px', fontSize: '0.85rem', color: loginError ? '#f87171' : '#
