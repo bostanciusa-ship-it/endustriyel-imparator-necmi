@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * ============================================================================
- * 🔊 NECMİ HOLDİNG - GELİŞMİŞ SES SENTEZLEYİCİ ÜNİTESİ
+ * 🔊 SİBER SES SENTEZLEYİCİ ÜNİTESİ
  * ============================================================================
  */
 const playSfx = (type: string) => {
@@ -43,23 +43,16 @@ const playSfx = (type: string) => {
       oscillator.stop(startTime + 0.4);
     }
   } catch (error) {
-    console.warn("Ses motoru başlatılamadı.");
+    console.warn("Ses engellendi.");
   }
 };
 
-/**
- * ============================================================================
- * 🏭 ANA HOLDİNG YÖNETİM MERKEZİ (App Component)
- * ============================================================================
- */
 export default function App() {
-  
-  // --- KİMLİK DOĞRULAMA DURUMLARI ---
-  const [passwordInput, setPasswordInput] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [interfaceMode, setInterfaceMode] = useState<"HOCA" | "NECMI" | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [loginError, setLoginError] = useState(false);
+  // --- HİKAYE VE INTRO DURUMLARI ---
+  const [introStage, setIntroStage] = useState(0); 
+  const [introText, setIntroText] = useState("");
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gameWon, setGameWon] = useState(false);
 
   // --- EKONOMİK DURUMLAR ---
   const [totalCash, setTotalCash] = useState(250);
@@ -80,37 +73,56 @@ export default function App() {
   const [isStrikeActive, setIsStrikeActive] = useState(false);
   const [shipmentCountdown, setShipmentCountdown] = useState(3);
 
-  // --- REFLER (BUG-FREE LOJİSTİK İÇİN) ---
-  const stateRef = useRef({ lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory });
+  const stateRef = useRef({ lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory, totalCash });
   
   useEffect(() => {
-    stateRef.current = { lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory };
-  }, [lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory]);
-
-
-  // --- GİRİŞ AKSİYONU ---
-  const executeLoginAction = () => {
-    const sanitizedKey = passwordInput.trim().toUpperCase();
-    setLoginError(false);
-    
-    if (sanitizedKey === "B123B123" || sanitizedKey === "3689") {
-      setIsConnecting(true);
-      playSfx('click');
-      
-      setTimeout(() => {
-        setInterfaceMode(sanitizedKey === "B123B123" ? "NECMI" : "HOCA");
-        setIsAuthenticated(true);
-        setIsConnecting(false);
-        playSfx('buy');
-      }, 1500);
-      
-    } else {
-      playSfx('alert');
-      setLoginError(true);
+    stateRef.current = { lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory, totalCash };
+    if (totalCash >= 1000000 && !gameWon) {
+      setGameWon(true);
+      playSfx('buy');
     }
-  };
+  }, [lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory, totalCash, gameWon]);
 
-  // --- SEVİYE YÜKSELTME FONKSİYONLARI ---
+  // --- DÜKKANDAN ÇIKTIKTAN SONRA KENDİ KENDİNE YEMİN ETME SENARYOSU ---
+  const storyDialogs = [
+    "📍 AHMET HOLDİNG - MERKEZ OFİS (KOVULMA ANI)...",
+    "💼 Ahmet Bey: 'Duyduklarıma göre lojistiği büyütecekmişsin Necmi? Kamyon filosu falan... Gereksiz!'",
+    "💼 Ahmet Bey: 'Burada kuralları ben koyarım Necmi! Kovuldun! Şimdi git o projelerini başka yerde sat!'",
+    "🚪 *KAPISI ÇARPIP DÜKKANDAN ÇIKARSIN VE HOLDİNG BİNASININ ÖNÜNDE TEK BAŞINA KALIRSIN...*",
+    "🔥 Necmi (Kendi Kendine): 'Eski patronumdan intikam almalıyım, milyoner olmalıyım! Sıfırdan başlayıp tam 1 MİLYON DOLAR yapacağım!'",
+    "🚀 Necmi (Kendi Kendine): 'O 1 milyonu kasaya koyduğum gün, senin o köhne şirketi borsadan tamamen sileceğim Ahmet! İZLE VE GÖR!'"
+  ];
+
+  useEffect(() => {
+    if (gameStarted) return;
+    
+    let charIndex = 0;
+    setIntroText("");
+    const currentLine = storyDialogs[introStage];
+
+    const typingInterval = setInterval(() => {
+      if (charIndex < currentLine.length) {
+        setIntroText((prev) => prev + currentLine.charAt(charIndex));
+        charIndex++;
+      } else {
+        clearInterval(typingInterval);
+        
+        // Sahneler arası akış beklemesi (Yazı bitince 3.2 saniye bekler)
+        setTimeout(() => {
+          if (introStage < storyDialogs.length - 1) {
+            setIntroStage(prev => prev + 1);
+          } else {
+            setGameStarted(true);
+            playSfx('buy');
+          }
+        }, 3200);
+      }
+    }, 30);
+
+    return () => clearInterval(typingInterval);
+  }, [introStage, gameStarted]);
+
+  // --- SEVİYE YÜKSELTME AKSİYONLARI ---
   const upgradeManualPower = () => {
     const requiredCapital = Math.floor(200 * Math.pow(1.25, lvlManualProduction - 1));
     if (totalCash >= requiredCapital) {
@@ -165,9 +177,9 @@ export default function App() {
     playSfx('buy');
   };
 
-  // --- CORE GAME ENGINE ---
+  // --- ENGINE TICKERS ---
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!gameStarted || gameWon) return;
 
     const marketFluxInterval = setInterval(() => {
       setCurrentMarketValue(oldPrice => {
@@ -229,77 +241,95 @@ export default function App() {
     }, 1000);
 
     return () => { clearInterval(marketFluxInterval); clearInterval(systemHeartbeat); };
-  }, [isAuthenticated, isStrikeActive, activeIncident]);
+  }, [gameStarted, isStrikeActive, activeIncident, gameWon]);
 
-  // GİRİŞ EKRANI RENDER
-  if (!isAuthenticated) {
+  // --- EKRAN 1: SİNEMATİK INTRO EKRANI ---
+  if (!gameStarted) {
+    const isAhmetSpeaking = introStage <= 2;
+    const isTransitionStage = introStage === 3;
+    
     return (
-      <div style={{ backgroundColor: '#020617', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#f8fafc', fontFamily: 'monospace', overflow: 'hidden', position: 'relative' }}>
+      <div style={{ backgroundColor: '#020617', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#f8fafc', fontFamily: 'monospace', padding: '20px', textAlign: 'center', overflow: 'hidden', position: 'relative' }}>
         
-        <div style={{ position: 'absolute', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(0,0,0,0) 70%)', top: '10%', left: '20%' }}></div>
-        <div style={{ position: 'absolute', width: '500px', height: '500px', background: 'radial-gradient(circle, rgba(249,115,22,0.08) 0%, rgba(0,0,0,0) 70%)', bottom: '10%', right: '15%' }}></div>
+        {/* Sinematik Arka Plan Efekti */}
+        <div style={{ position: 'absolute', width: '500px', height: '500px', background: isTransitionStage ? 'radial-gradient(circle, rgba(234,179,8,0.08) 0%, rgba(0,0,0,0) 70%)' : isAhmetSpeaking ? 'radial-gradient(circle, rgba(239,68,68,0.1) 0%, rgba(0,0,0,0) 70%)' : 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(0,0,0,0) 70%)', transition: 'all 1s ease' }}></div>
 
-        <div style={{ background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(16px)', padding: '50px 40px', borderRadius: '30px', border: loginError ? '2px solid #ef4444' : '2px solid #3b82f6', boxShadow: loginError ? '0 0 50px rgba(239, 68, 68, 0.25)' : '0 0 50px rgba(59, 130, 246, 0.25)', width: '420px', textAlign: 'center', zIndex: 10 }}>
+        <div style={{ maxWidth: '700px', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)', border: isTransitionStage ? '2px solid rgba(234,179,8,0.4)' : isAhmetSpeaking ? '2px solid rgba(239, 68, 68, 0.4)' : '2px solid rgba(59, 130, 246, 0.6)', padding: '45px', borderRadius: '24px', boxShadow: isTransitionStage ? '0 0 40px rgba(234,179,8,0.15)' : isAhmetSpeaking ? '0 0 40px rgba(239, 68, 68, 0.15)' : '0 0 50px rgba(59, 130, 246, 0.25)', transition: 'all 0.5s ease' }}>
           
-          <div style={{ marginBottom: '30px' }}>
-            <div style={{ display: 'inline-block', fontSize: '3rem' }}>🏛️</div>
-            <h1 style={{ fontSize: '2.2rem', margin: '10px 0 5px 0', fontWeight: 'bold', letterSpacing: '2px', background: 'linear-gradient(to right, #3b82f6, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>NECMİ HOLDİNG</h1>
-            <div style={{ fontSize: '0.8rem', color: '#64748b', letterSpacing: '4px' }}>SİBER ERP TERMİNALİ v4.6.2</div>
+          {/* Sahneye Göre Değişen İkonlar */}
+          <div style={{ fontSize: '4.5rem', marginBottom: '25px' }}>
+            {isTransitionStage ? "🚪🚶" : isAhmetSpeaking ? "👴💼" : "😡🔥"}
           </div>
 
-          <div style={{ background: '#090d16', padding: '12px', borderRadius: '12px', fontSize: '0.85rem', color: loginError ? '#f87171' : '#38bdf8', marginBottom: '25px', border: loginError ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(56,189,248,0.2)' }}>
-            {isConnecting ? (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                YETKİLENDİRME PROTOKOLÜ ÇALIŞIYOR...
-              </span>
-            ) : loginError ? "⚠️ ERİŞİM REDDEDİLDİ: GEÇERSİZ KOD!" : "🔒 GÜVENLİ BAĞLANTI İÇİN KOD GİRİNİZ"}
+          {/* Konuşan Kişi / Durum Etiketi */}
+          <div style={{ fontSize: '0.9rem', color: '#64748b', letterSpacing: '2px', marginBottom: '10px', fontWeight: 'bold' }}>
+            {isTransitionStage ? "SAHNE GEÇİŞİ" : isAhmetSpeaking ? "ESKİ PATRON: AHMET BEY" : "NECMİ (BİNANIN ÖNÜNDE TEK BAŞINA)"}
           </div>
 
-          <div style={{ position: 'relative', marginBottom: '20px' }}>
-            <input 
-              type="password" 
-              placeholder="••••••••" 
-              disabled={isConnecting}
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && executeLoginAction()}
-              style={{ width: '100%', padding: '16px 20px', background: '#090d16', border: '1px solid #1e293b', color: '#38bdf8', borderRadius: '14px', fontSize: '1.4rem', textAlign: 'center', letterSpacing: '4px', outline: 'none' }}
-            />
+          {/* Daktilo Efektli Metin Alanı */}
+          <div style={{ minHeight: '140px', fontSize: '1.45rem', lineHeight: '1.65', color: isTransitionStage ? '#eab308' : isAhmetSpeaking ? '#f87171' : '#38bdf8', fontWeight: 500 }}>
+            {introText}
           </div>
 
-          <button 
-            onClick={executeLoginAction}
-            disabled={isConnecting}
-            style={{ width: '100%', padding: '16px', background: isConnecting ? '#1e293b' : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: 'white', border: 'none', borderRadius: '14px', fontWeight: 'bold', fontSize: '1.1rem', cursor: isConnecting ? 'not-allowed' : 'pointer', boxShadow: '0 4px 20px rgba(59, 130, 246, 0.4)' }}
-          >
-            {isConnecting ? "BAĞLANILIYOR..." : "ANA MOTORU BAŞLAT"}
-          </button>
+          {/* İlerleme Çubuğu */}
+          <div style={{ width: '100%', height: '5px', background: '#1e293b', marginTop: '35px', borderRadius: '3px', overflow: 'hidden' }}>
+            <div style={{ width: `${((introStage + 1) / storyDialogs.length) * 100}%`, height: '100%', background: isTransitionStage ? '#eab308' : isAhmetSpeaking ? '#ef4444' : '#3b82f6', transition: 'width 0.4s ease' }}></div>
+          </div>
 
-          <div style={{ marginTop: '25px', fontSize: '0.75rem', color: '#475569' }}>
-            SECURE LAYER SEC-V2 // IP: 192.168.1.104
+          <div style={{ marginTop: '20px', color: '#475569', fontSize: '0.75rem' }}>
+            METİN AKIŞI OTOMATİKTİR // İNTİKAM YAKLAŞIYOR
           </div>
         </div>
-
-        {/* ESBUILD TRANSFORM DOSTU GÜVENLİ CSS ENJEKSİYONU */}
-        <style dangerouslySetInnerHTML={{__html: "input:focus { border-color: #3b82f6 !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3) !important; }"}} />
       </div>
     );
   }
 
-  // --- ANA OYUN EKRANI RENDER ---
+  // --- EKRAN 2: ZAFER EKRANI ---
+  if (gameWon) {
+    return (
+      <div style={{ backgroundColor: '#020617', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#f8fafc', fontFamily: 'monospace', textAlign: 'center' }}>
+        <div style={{ background: 'linear-gradient(135deg, #064e3b 0%, #020617 100%)', border: '3px solid #22c55e', padding: '50px', borderRadius: '30px', boxShadow: '0 0 60px rgba(34, 197, 94, 0.4)', maxWidth: '650px' }}>
+          <div style={{ fontSize: '5rem' }}>👑🚀</div>
+          <h1 style={{ color: '#22c55e', fontSize: '2.6rem', margin: '20px 0', fontWeight: 'bold' }}>AHMET'TEN İNTİKAM ALINDI!</h1>
+          <p style={{ fontSize: '1.25rem', lineHeight: '1.6', color: '#cbd5e1' }}>
+            Hesabında tam <strong>${Math.floor(totalCash).toLocaleString()}</strong> var Necmi! Ahmet Bey'in holding hisselerini tabandan topladın, onu yönetim kurulundan kovdun ve kapının önüne koydun!
+          </p>
+          <div style={{ background: 'rgba(0,0,0,0.4)', padding: '15px', borderRadius: '12px', border: '1px solid #22c55e', color: '#34d399', fontSize: '1.1rem', margin: '25px 0', fontWeight: 'bold' }}>
+            NECMİ HOLDİNG SEKTÖRÜN TEK HAKİMİ OLDU!
+          </div>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{ padding: '16px 35px', background: '#22c55e', color: '#020617', border: 'none', borderRadius: '14px', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 5px 15px rgba(34,197,94,0.4)' }}
+          >
+            YENİDEN BAŞLAT VE AHMET'İ BİR DAHA EZ
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- EKRAN 3: ANA OYUN ARBİTRAJI ---
   return (
     <div style={{ backgroundColor: '#020617', minHeight: '100vh', color: '#f8fafc', fontFamily: 'Segoe UI, sans-serif', padding: '40px' }}>
       
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '20px', marginBottom: '40px' }}>
         <div>
-          <h2 style={{ margin: 0, color: '#3b82f6', letterSpacing: '1px' }}>{interfaceMode === 'NECMI' ? "CEO YÖNETİM PANELİ" : "LOJİSTİK VE ANALİZ"}</h2>
-          <span style={{ color: '#64748b', fontSize: '0.9rem' }}>HOLDİNG STATUS: <span style={{ color: '#22c55e' }}>ONLINE</span></span>
+          <h2 style={{ margin: 0, color: '#3b82f6', letterSpacing: '1px' }}>NECMİ'NİN İNTİKAMI: GLOBAL LOJİSTİK</h2>
+          <span style={{ color: '#fbbf24', fontSize: '0.9rem', fontWeight: 'bold' }}>🎯 HEDEF: $1.000.000 NAKİT BİRİKTİRİP AHMET'İ BATIRMAK!</span>
         </div>
         
-        <div style={{ background: '#0f172a', padding: '15px 25px', borderRadius: '15px', border: `1px solid ${marketDirection === 'up' ? '#22c55e' : '#ef4444'}`, textAlign: 'right' }}>
-          <small style={{ color: '#64748b' }}>BORSA DEĞERİ</small>
-          <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: marketDirection === 'up' ? '#22c55e' : '#ef4444' }}>
-            ${currentMarketValue.toFixed(2)} {marketDirection === 'up' ? '▲' : '▼'}
+        <div style={{ display: 'flex', gap: '15px' }}>
+          <div style={{ background: '#0f172a', padding: '15px 25px', borderRadius: '15px', border: '1px solid #3b82f6', textAlign: 'right' }}>
+            <small style={{ color: '#64748b' }}>AHMET'İN İFLASINA KALAN</small>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>
+              ${Math.max(0, 1000000 - Math.floor(totalCash)).toLocaleString()}
+            </div>
+          </div>
+          <div style={{ background: '#0f172a', padding: '15px 25px', borderRadius: '15px', border: `1px solid ${marketDirection === 'up' ? '#22c55e' : '#ef4444'}`, textAlign: 'right' }}>
+            <small style={{ color: '#64748b' }}>BORSA DEĞERİ</small>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: marketDirection === 'up' ? '#22c55e' : '#ef4444' }}>
+              ${currentMarketValue.toFixed(2)} {marketDirection === 'up' ? '▲' : '▼'}
+            </div>
           </div>
         </div>
       </header>
@@ -318,8 +348,11 @@ export default function App() {
 
       <div style={{ display: 'flex', gap: '30px', marginBottom: '50px' }}>
         <div style={{ flex: 1, background: '#0f172a', padding: '30px', borderRadius: '25px', border: '1px solid #1e293b', textAlign: 'center' }}>
-          <div style={{ color: '#64748b', marginBottom: '10px' }}>KASA BAKİYESİ</div>
+          <div style={{ color: '#64748b', marginBottom: '10px' }}>NECMİ'NİN KASASI</div>
           <div style={{ fontSize: '3rem', fontWeight: 'bold', color: '#22c55e' }}>${Math.floor(totalCash).toLocaleString()}</div>
+          <div style={{ width: '100%', height: '6px', background: '#1e293b', borderRadius: '3px', marginTop: '10px', overflow: 'hidden' }}>
+            <div style={{ width: `${Math.min(100, (totalCash / 1000000) * 100)}%`, height: '100%', background: '#22c55e' }}></div>
+          </div>
         </div>
         <div style={{ flex: 1, background: '#0f172a', padding: '30px', borderRadius: '25px', border: '1px solid #1e293b', textAlign: 'center' }}>
           <div style={{ color: '#64748b', marginBottom: '10px' }}>STOK DURUMU</div>
@@ -337,7 +370,7 @@ export default function App() {
             color: 'white', cursor: 'pointer', boxShadow: '0 10px 0 #1d4ed8'
           }}
         >
-          {isStrikeActive ? "GREV VAR: ÜRETİM DURDU" : currentInventory >= (lvlStorageCapacity * 40) ? "DEPO FULL: SEVKİYAT BEKLENİYOR" : "MANUEL ÜRETİMİ TETİKLE"}
+          {isStrikeActive ? "GREV VAR: ÜRETİM DURDU" : currentInventory >= (lvlStorageCapacity * 40) ? "DEPO FULL: SEVKİYAT BEKLENİYOR" : "MANUEL ÜRETİM YAP"}
         </button>
       </div>
 
@@ -345,40 +378,40 @@ export default function App() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '25px' }}>
         
         <div onClick={upgradeManualPower} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '1px solid #1e293b' }}>
-          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>ÜRETİM HATTI GÜNCELLEME</div>
-          <div style={{ fontSize: '1.2rem', margin: '5px 0' }}>TIK GÜCÜ (SEVİYE {lvlManualProduction})</div>
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>ÜRETİM GÜCÜ</div>
+          <div style={{ fontSize: '1.1rem', margin: '5px 0' }}>TIK BAŞINA ÜRETİM (LVL {lvlManualProduction})</div>
           <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${Math.floor(200 * Math.pow(1.25, lvlManualProduction - 1))}</div>
         </div>
 
         <div onClick={hireAutomatedWorker} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '1px solid #1e293b' }}>
-          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>İNSAN KAYNAKLARI</div>
-          <div style={{ fontSize: '1.2rem', margin: '5px 0' }}>OTOMATİK İŞÇİ (SEVİYE {lvlAutomatedWorkers})</div>
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>OTOMASYON HATTI</div>
+          <div style={{ fontSize: '1.1rem', margin: '5px 0' }}>OTOMATİK İŞÇİ (LVL {lvlAutomatedWorkers})</div>
           <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${Math.floor(500 * Math.pow(1.28, lvlAutomatedWorkers))}</div>
         </div>
 
         <div onClick={purchaseLogisticsTruck} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '2px solid #fbbf24' }}>
           <div style={{ color: '#fbbf24', fontSize: '0.8rem' }}>LOJİSTİK OPERASYONU</div>
-          <div style={{ fontSize: '1.2rem', margin: '5px 0' }}>🚚 YÜK KAMYONU (SEVİYE {lvlLogisticsTrucks})</div>
+          <div style={{ fontSize: '1.1rem', margin: '5px 0' }}>🚚 YÜK KAMYONU (LVL {lvlLogisticsTrucks})</div>
           <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${Math.floor(550 * Math.pow(1.35, lvlLogisticsTrucks))}</div>
-          <small style={{ color: '#64748b' }}>Hız: +0.5 Adet / 3 Saniye</small>
+          <small style={{ color: '#64748b' }}>Hız: +0.5 Birim / 3 Saniye</small>
         </div>
 
         <div onClick={expandMarketingDepth} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '1px solid #1e293b' }}>
-          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>PAZARLAMA DEPARTMANI</div>
-          <div style={{ fontSize: '1.2rem', margin: '5px 0' }}>REKLAM GÜCÜ (SEVİYE {lvlMarketingCampaigns})</div>
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>PAZARLAMA STRATEJİSİ</div>
+          <div style={{ fontSize: '1.1rem', margin: '5px 0' }}>REKLAM KAMPANYASI (LVL {lvlMarketingCampaigns})</div>
           <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${Math.floor(600 * Math.pow(1.22, lvlMarketingCampaigns - 1))}</div>
         </div>
 
         <div onClick={expandWarehouseSpace} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '1px solid #1e293b' }}>
-          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>ALTYAPI VE DEPOLAMA</div>
-          <div style={{ fontSize: '1.2rem', margin: '5px 0' }}>DEPO HACMİ (SEVİYE {lvlStorageCapacity})</div>
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>DEPOLAMA ALTYAPISI</div>
+          <div style={{ fontSize: '1.1rem', margin: '5px 0' }}>MAKSİMUM HACİM (LVL {lvlStorageCapacity})</div>
           <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${Math.floor(650 * Math.pow(1.20, lvlStorageCapacity - 1))}</div>
         </div>
 
       </div>
 
       <footer style={{ marginTop: '60px', textAlign: 'center', color: '#334155', fontSize: '0.8rem' }}>
-        NECMİ HOLDİNG ERP SİSTEMİ v4.6.2 | Kriz Döngüsü: {incidentTimer}s
+        NECMİ'NİN YÜKSELİŞİ v4.8.1 | Kriz Döngüsü: {incidentTimer}s
       </footer>
     </div>
   );
