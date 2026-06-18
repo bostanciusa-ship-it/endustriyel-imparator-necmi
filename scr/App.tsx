@@ -515,3 +515,6 @@ export default function App() {
     </div>
   );
 }
+git add .
+  git commit -m "kumar odasi v7"
+git push origin main
