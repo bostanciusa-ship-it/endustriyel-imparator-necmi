@@ -47,7 +47,29 @@ const playSfx = (type: string) => {
   }
 };
 
+// Kayıt Dosyası Tipi
+interface SaveData {
+  totalCash: number;
+  currentInventory: number;
+  currentMarketValue: number;
+  lvlManualProduction: number;
+  lvlAutomatedWorkers: number;
+  lvlMarketingCampaigns: number;
+  lvlStorageCapacity: number;
+  lvlLogisticsTrucks: number;
+  savedAt: string;
+}
+
 export default function App() {
+  // --- MENÜ VE SAVE SİSTEMİ DURUMLARI ---
+  const [isInMainMenu, setIsInMainMenu] = useState(true);
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+  const [slotsData, setSlotsData] = useState<{ [key: number]: SaveData | null }>({
+    1: null,
+    2: null,
+    3: null
+  });
+
   // --- HİKAYE VE INTRO DURUMLARI ---
   const [introStage, setIntroStage] = useState(0); 
   const [introText, setIntroText] = useState("");
@@ -64,11 +86,11 @@ export default function App() {
   const [currentMarketValue, setCurrentMarketValue] = useState(18.00);
   const [marketDirection, setMarketDirection] = useState<'up' | 'down'>('up');
 
-  // --- NATALİ DÖNER SİSTEMİ DURUMLARI ---
-  const [isNataliHere, setIsNataliHere] = useState(false); // Natali dükkanda mı?
-  const [nataliLeaveTimer, setNataliLeaveTimer] = useState(0); // Gitmesine kalan süre (30sn)
-  const [nataliArrivalCheckTimer, setNataliArrivalCheckTimer] = useState(60); // 1 dakikalık kontrol sayacı
-  const [donerBuffTimer, setDonerBuffTimer] = useState(0); // Satın alınan dönerin indirim süresi (60sn)
+  // --- NATALİ SİSTEMİ DURUMLARI ---
+  const [isNataliHere, setIsNataliHere] = useState(false); 
+  const [nataliLeaveTimer, setNataliLeaveTimer] = useState(0); 
+  const [nataliArrivalCheckTimer, setNataliArrivalCheckTimer] = useState(60); 
+  const [donerBuffTimer, setDonerBuffTimer] = useState(0); 
 
   // --- GELİŞTİRME SEVİYELERİ ---
   const [lvlManualProduction, setLvlManualProduction] = useState(1);
@@ -85,15 +107,30 @@ export default function App() {
 
   const stateRef = useRef({ lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory, totalCash, raidStarted });
   
+  // İlk açılışta lokal kayıtları kontrol etme
+  useEffect(() => {
+    const loadedSlots: { [key: number]: SaveData | null } = { 1: null, 2: null, 3: null };
+    for (let i = 1; i <= 3; i++) {
+      const saved = localStorage.getItem(`necmi_save_slot_${i}`);
+      if (saved) {
+        try {
+          loadedSlots[i] = JSON.parse(saved);
+        } catch (e) {
+          console.error("Kayıt okuma hatası", e);
+        }
+      }
+    }
+    setSlotsData(loadedSlots);
+  }, [isInMainMenu]);
+
   useEffect(() => {
     stateRef.current = { lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory, totalCash, raidStarted };
-    if (totalCash >= 1000000 && !raidStarted) {
+    if (totalCash >= 1000000 && !raidStarted && gameStarted && !isInMainMenu) {
       setRaidStarted(true);
       playSfx('buy');
     }
-  }, [lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory, totalCash, raidStarted]);
+  }, [lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory, totalCash, raidStarted, gameStarted, isInMainMenu]);
 
-  // --- DÜKKANDAN ÇIKTIKTAN SONRA KENDİ KENDİNE YEMİN ETME SENARYOSU ---
   const storyDialogs = [
     "📍 AHMET HOLDİNG - MERKEZ OFİS (KOVULMA ANI)...",
     "💼 Ahmet Bey: 'Duyduklarıma göre lojistiği büyütecekmişsin Necmi? Kamyon filosu falan... Gereksiz!'",
@@ -103,7 +140,6 @@ export default function App() {
     "🚀 Necmi (Kendi Kendine): 'O 1 milyonu kasaya koyduğum gün, senin o köhne şirketi borsadan tamamen sileceğim ****** çocuğu! İZLE VE GÖR!'"
   ];
 
-  // --- HOLDİNG BASKINI SİNEMATİK DİYALOGLARI ---
   const raidDialogs = [
     "🚨 ALARM! NECMİ LOJİSTİK TIR FİLOSU AHMET HOLDİNG KAPISINA DAYANDI! 🚨",
     "💥 GÜÜÜÜÜM! Necmi'nin satın aldığı dev tırlar holdingin ana giriş camlarını tuzla buz ederek içeri giriyor!",
@@ -116,9 +152,67 @@ export default function App() {
     "📉 Necmi: 'Bitti Ahmet. Şirketinin tüm hisselerini satın aldım. Şimdi bu binayı tırlarımla dümdüz edeceğim, sen de sokağa döneceksin!'"
   ];
 
+  // OYUNU KAYDETME FONKSİYONU
+  const saveGame = () => {
+    if (selectedSlot === null) return;
+    const dataToSave: SaveData = {
+      totalCash,
+      currentInventory,
+      currentMarketValue,
+      lvlManualProduction,
+      lvlAutomatedWorkers,
+      lvlMarketingCampaigns,
+      lvlStorageCapacity,
+      lvlLogisticsTrucks,
+      savedAt: new Date().toLocaleTimeString()
+    };
+    localStorage.setItem(`necmi_save_slot_${selectedSlot}`, JSON.stringify(dataToSave));
+    playSfx('buy');
+    alert(`Oyun Başarıyla Slot ${selectedSlot}'e Kaydedildi!`);
+  };
+
+  // OYUNU BAŞLATMA VE YÜKLEME KARARI
+  const handleStartGame = () => {
+    if (selectedSlot === null) {
+      playSfx('alert');
+      alert("Lütfen oynamak veya sıfırdan başlamak için bir Slot seçin!");
+      return;
+    }
+    
+    playSfx('click');
+    const slotData = slotsData[selectedSlot];
+
+    if (slotData) {
+      // Eğer bu slotta kayıtlı data varsa, İntro olmadan direkt yükle
+      setTotalCash(slotData.totalCash);
+      setCurrentInventory(slotData.currentInventory);
+      setCurrentMarketValue(slotData.currentMarketValue);
+      setLvlManualProduction(slotData.lvlManualProduction);
+      setLvlAutomatedWorkers(slotData.lvlAutomatedWorkers);
+      setLvlMarketingCampaigns(slotData.lvlMarketingCampaigns);
+      setLvlStorageCapacity(slotData.lvlStorageCapacity);
+      setLvlLogisticsTrucks(slotData.lvlLogisticsTrucks);
+      
+      setIsInMainMenu(false);
+      setGameStarted(true);
+    } else {
+      // Dosya yoksa, varsayılan ayarlarla Hikaye (Intro) modunu başlat
+      setTotalCash(250);
+      setCurrentInventory(0);
+      setLvlManualProduction(1);
+      setLvlAutomatedWorkers(0);
+      setLvlMarketingCampaigns(1);
+      setLvlStorageCapacity(1);
+      setLvlLogisticsTrucks(0);
+
+      setIsInMainMenu(false);
+      setIntroStage(0);
+    }
+  };
+
   // INTRO DAKTİLO EFEKTİ
   useEffect(() => {
-    if (gameStarted) return;
+    if (isInMainMenu || gameStarted) return;
     let charIndex = 0;
     setIntroText("");
     const currentLine = storyDialogs[introStage];
@@ -140,7 +234,7 @@ export default function App() {
       }
     }, 30);
     return () => clearInterval(typingInterval);
-  }, [introStage, gameStarted]);
+  }, [introStage, gameStarted, isInMainMenu]);
 
   // BASKIN SİNEMATİK DAKTİLO EFEKTİ
   useEffect(() => {
@@ -165,12 +259,11 @@ export default function App() {
     return () => clearInterval(typingInterval);
   }, [raidStarted, raidStage]);
 
-  // NATALİ'DEN DÖNER SATIN ALMA
-  const buyDonerFromNatali = () => {
-    if (isNataliHere && totalCash >= 100) {
+  const handleNataliYes = () => {
+    if (totalCash >= 100) {
       setTotalCash(prev => prev - 100);
-      setDonerBuffTimer(60); // 1 dakika indirim buffı active
-      setIsNataliHere(false); // Döner alınınca tezgahını toplar
+      setDonerBuffTimer(60); 
+      setIsNataliHere(false); 
       setNataliLeaveTimer(0);
       playSfx('buy');
     } else {
@@ -178,7 +271,12 @@ export default function App() {
     }
   };
 
-  // İNDİRİMLİ FİYAT HESAPLAMA (%10 INDIRIM)
+  const handleNataliNo = () => {
+    setIsNataliHere(false);
+    setNataliLeaveTimer(0);
+    playSfx('click');
+  };
+
   const getDiscountedCost = (baseCost: number) => {
     if (donerBuffTimer > 0) {
       return Math.floor(baseCost * 0.90);
@@ -243,7 +341,7 @@ export default function App() {
 
   // --- OYUN MOTORU DÖNGÜLERİ ---
   useEffect(() => {
-    if (!gameStarted || stateRef.current.raidStarted) return;
+    if (isInMainMenu || !gameStarted || stateRef.current.raidStarted) return;
 
     const marketFluxInterval = setInterval(() => {
       setCurrentMarketValue(oldPrice => {
@@ -255,35 +353,29 @@ export default function App() {
     }, 5000);
 
     const systemHeartbeat = setInterval(() => {
-      // Döner İndirim Süresi Yönetimi
       setDonerBuffTimer(prev => (prev > 0 ? prev - 1 : 0));
 
-      // Natali Dükkandaysa Kalma Süresini Azalt
       setNataliLeaveTimer(prev => {
         if (prev <= 1 && isNataliHere) {
-          setIsNataliHere(false); // Süre bitti, Natali gitti
+          setIsNataliHere(false); 
           return 0;
         }
         return prev > 0 ? prev - 1 : 0;
       });
 
-      // --- 1 DAKİKADA BİR %25 İHTİMALLE NATALİ GELSİN SİSTEMİ ---
       setNataliArrivalCheckTimer(prevTime => {
         if (prevTime <= 1) {
-          // 60 saniye bitti, zar atılıyor
-          const rollDice = Math.random(); // 0 ile 1 arası sayı üretir
+          const rollDice = Math.random(); 
           if (rollDice <= 0.25 && !isNataliHere) {
-            // %25 şans tuttu! Natali geliyor
             setIsNataliHere(true);
-            setNataliLeaveTimer(30); // 30 saniye dükkanda kalacak
+            setNataliLeaveTimer(30); 
             playSfx('buy');
           }
-          return 60; // Sayacı tekrar 1 dakikaya (60 saniye) kur
+          return 60; 
         }
         return prevTime - 1;
       });
 
-      // Otomatik İşçi Üretimi
       if (!isStrikeActive) {
         setCurrentInventory(inventory => {
           const capacityLimit = lvlStorageCapacity * 40;
@@ -292,7 +384,6 @@ export default function App() {
         });
       }
 
-      // Sevkiyat ve Satış Motoru
       setShipmentCountdown(currentSec => {
         if (currentSec <= 1) {
           const currentRefData = stateRef.current;
@@ -311,7 +402,6 @@ export default function App() {
         return currentSec - 1;
       });
 
-      // Kriz Yönetimi
       if (!activeIncident) {
         setIncidentTimer(prevTime => {
           if (prevTime <= 1) {
@@ -336,15 +426,90 @@ export default function App() {
     }, 1000);
 
     return () => { clearInterval(marketFluxInterval); clearInterval(systemHeartbeat); };
-  }, [gameStarted, isStrikeActive, activeIncident, lvlStorageCapacity, lvlAutomatedWorkers, isNataliHere]);
+  }, [gameStarted, isInMainMenu, isStrikeActive, activeIncident, lvlStorageCapacity, lvlAutomatedWorkers, isNataliHere]);
 
-  // --- EKRAN 1: SİNEMATİK INTRO EKRANI ---
+  // --- EKRAN 0: YENİ GİRİŞ VE 3'LÜ SAVE SLOT SEÇİM MENÜSÜ ---
+  if (isInMainMenu) {
+    return (
+      <div style={{ backgroundColor: '#020617', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#f8fafc', fontFamily: 'monospace', padding: '20px' }}>
+        <div style={{ maxWidth: '650px', width: '100%', background: '#0f172a', border: '3px solid #3b82f6', padding: '40px', borderRadius: '24px', textAlign: 'center', boxShadow: '0 0 40px rgba(59, 130, 246, 0.25)' }}>
+          <h1 style={{ color: '#3b82f6', fontSize: '2.2rem', marginBottom: '10px', letterSpacing: '1px' }}>NECMİ'NİN YÜKSELİŞİ</h1>
+          <p style={{ color: '#64748b', marginBottom: '30px', fontSize: '0.95rem' }}>Lütfen oynamak istediğiniz kayıt barını (save dosyasını) seçin:</p>
+          
+          {/* 3 ADET SAVE BARI */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '35px' }}>
+            {[1, 2, 3].map((slotNumber) => {
+              const hasData = slotsData[slotNumber] !== null;
+              const isSelected = selectedSlot === slotNumber;
+              const data = slotsData[slotNumber];
+
+              return (
+                <div 
+                  key={slotNumber}
+                  onClick={() => { setSelectedSlot(slotNumber); playSfx('click'); }}
+                  style={{
+                    padding: '20px', borderRadius: '14px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s ease',
+                    backgroundColor: isSelected ? '#1e293b' : '#090d16',
+                    border: isSelected ? '2px solid #22c55e' : '2px solid #1e293b',
+                    boxShadow: isSelected ? '0 0 15px rgba(34, 197, 148, 0.2)' : 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold', color: isSelected ? '#22c55e' : '#f8fafc', fontSize: '1.1rem' }}>
+                      💾 SLOT {slotNumber} {isSelected && "• (SEÇİLDİ)"}
+                    </span>
+                    <span style={{ fontSize: '0.8rem', color: '#475569' }}>
+                      {hasData ? `Son Kayıt: ${data?.savedAt}` : "BOŞ YUVA"}
+                    </span>
+                  </div>
+                  
+                  <div style={{ marginTop: '10px', fontSize: '0.9rem', color: '#94a3b8' }}>
+                    {hasData ? (
+                      <div>
+                        💰 Kasa: <strong style={{ color: '#22c55e' }}>${Math.floor(data!.totalCash).toLocaleString()}</strong> | 📦 Stok: <strong>{data!.currentInventory.toFixed(0)} birim</strong> | 🛞 Tır Gücü: <strong>Lvl {data!.lvlLogisticsTrucks}</strong>
+                      </div>
+                    ) : (
+                      <span style={{ color: '#475569', fontStyle: 'italic' }}>Kayıtlı dosya yok. Seçilirse sıfırdan hikaye başlar.</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={handleStartGame}
+            style={{
+              width: '100%', padding: '20px', fontSize: '1.3rem', fontWeight: 'bold', border: 'none', borderRadius: '14px',
+              backgroundColor: selectedSlot !== null ? '#22c55e' : '#334155',
+              color: selectedSlot !== null ? '#020617' : '#64748b',
+              cursor: selectedSlot !== null ? 'pointer' : 'not-allowed',
+              boxShadow: selectedSlot !== null ? '0 5px 15px rgba(34,197,94,0.3)' : 'none'
+            }}
+          >
+            BAŞLAT / DEVAM ET
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- EKRAN 1: SİNEMATİK INTRO EKRANI (HİKAYEYİ GEÇ TUŞLU) ---
   if (!gameStarted) {
     const isAhmetSpeaking = introStage <= 2;
     const isTransitionStage = introStage === 3;
     
     return (
       <div style={{ backgroundColor: '#020617', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#f8fafc', fontFamily: 'monospace', padding: '20px', textAlign: 'center', overflow: 'hidden', position: 'relative' }}>
+        
+        {/* HİKAYEYİ GEÇ BUTONU */}
+        <button 
+          onClick={() => { setGameStarted(true); playSfx('buy'); }}
+          style={{ position: 'absolute', top: '30px', right: '30px', padding: '12px 30px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', borderRadius: '10px', color: '#fecaca', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem', zIndex: 100 }}
+        >
+          ⏭️ HİKAYEYİ GEÇ
+        </button>
+
         <div style={{ position: 'absolute', width: '500px', height: '500px', background: isTransitionStage ? 'radial-gradient(circle, rgba(234,179,8,0.08) 0%, rgba(0,0,0,0) 70%)' : isAhmetSpeaking ? 'radial-gradient(circle, rgba(239,68,68,0.1) 0%, rgba(0,0,0,0) 70%)' : 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(0,0,0,0) 70%)', transition: 'all 1s ease' }}></div>
         <div style={{ maxWidth: '700px', background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(12px)', border: isTransitionStage ? '2px solid rgba(234,179,8,0.4)' : isAhmetSpeaking ? '2px solid rgba(239, 68, 68, 0.4)' : '2px solid rgba(59, 130, 246, 0.6)', padding: '45px', borderRadius: '24px', boxShadow: isTransitionStage ? '0 0 40px rgba(234,179,8,0.15)' : isAhmetSpeaking ? '0 0 40px rgba(239, 68, 68, 0.15)' : '0 0 50px rgba(59, 130, 246, 0.25)', transition: 'all 0.5s ease' }}>
           <div style={{ fontSize: '4.5rem', marginBottom: '25px' }}>
@@ -388,7 +553,7 @@ export default function App() {
               onClick={() => window.location.reload()} 
               style={{ padding: '18px 45px', background: '#22c55e', color: '#020617', border: 'none', borderRadius: '16px', fontWeight: 'bold', fontSize: '1.2rem', cursor: 'pointer', marginTop: '30px', boxShadow: '0 8px 20px rgba(34,197,94,0.4)' }}
             >
-              AHMET'İ YENİDEN SIFIRLAMAK İÇİN BAŞLAT
+              MENÜYE DÖN VE YENİDEN BAŞLAT
             </button>
           ) : (
             <div style={{ marginTop: '30px', color: '#475569', fontSize: '0.85rem', letterSpacing: '1px' }}>
@@ -402,8 +567,32 @@ export default function App() {
 
   // --- EKRAN 3: ANA LOJİSTİK VE YÖNETİM MERKEZİ ---
   return (
-    <div style={{ backgroundColor: '#020617', minHeight: '100vh', color: '#f8fafc', fontFamily: 'Segoe UI, sans-serif', padding: '40px' }}>
+    <div style={{ backgroundColor: '#020617', minHeight: '100vh', color: '#f8fafc', fontFamily: 'Segoe UI, sans-serif', padding: '40px', paddingBottom: '120px' }}>
       
+      {/* Natali Bildirim Ünitesi */}
+      {isNataliHere && (
+        <div style={{ background: '#1e1b4b', border: '2px solid #3b82f6', padding: '15px 25px', borderRadius: '12px', marginBottom: '25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#ffffff' }}>
+            Natali geldi döner almak istermisin 100 dolar ({nataliLeaveTimer}sn)
+          </span>
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <button 
+              onClick={handleNataliYes}
+              disabled={totalCash < 100}
+              style={{ padding: '8px 25px', background: totalCash >= 100 ? '#22c55e' : '#1e293b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: totalCash >= 100 ? 'pointer' : 'not-allowed' }}
+            >
+              Evet
+            </button>
+            <button 
+              onClick={handleNataliNo}
+              style={{ padding: '8px 25px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              Hayır
+            </button>
+          </div>
+        </div>
+      )}
+
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '20px', marginBottom: '40px' }}>
         <div>
           <h2 style={{ margin: 0, color: '#3b82f6', letterSpacing: '1px' }}>NECMİ'NİN GLOBAL LOJİSTİK ÜSSÜ</h2>
@@ -411,15 +600,19 @@ export default function App() {
         </div>
         
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-          {/* Arka plan radar göstergesi / Şans kontrolü */}
+          <button 
+            onClick={() => { setIsInMainMenu(true); setGameStarted(false); playSfx('click'); }}
+            style={{ padding: '10px 18px', background: '#1e293b', color: 'white', border: '1px solid #3b82f6', borderRadius: '10px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            🏠 ANA MENÜ
+          </button>
           <div style={{ fontSize: '0.8rem', color: '#475569', background: '#0b0f19', padding: '10px 15px', borderRadius: '10px', border: '1px solid #1e293b' }}>
-            🌯 Natali Kontrolü: <strong>{nataliArrivalCheckTimer}sn</strong>
+            ⏱️ Şans Sayacı: <strong>{nataliArrivalCheckTimer}sn</strong>
           </div>
 
           {donerBuffTimer > 0 && (
-            <div style={{ background: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)', padding: '15px 20px', borderRadius: '15px', border: '1px solid #ef4444', textAlign: 'center' }}>
-              <small style={{ color: '#fecaca', fontWeight: 'bold' }}>🌯 DÖNER GÜCÜ ACTİVE</small>
-              <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#ffffff' }}>%10 İNDİRİM: {donerBuffTimer}sn</div>
+            <div style={{ background: '#7f1d1d', padding: '12px 20px', borderRadius: '12px', border: '1px solid #ef4444' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#ffffff' }}>İndirim Aktif: {donerBuffTimer}sn</div>
             </div>
           )}
           <div style={{ background: '#0f172a', padding: '15px 25px', borderRadius: '15px', border: '1px solid #3b82f6', textAlign: 'right' }}>
@@ -446,32 +639,6 @@ export default function App() {
           >
             KRİZE MÜDAHALE ET {isStrikeActive && "(-100$)"}
           </button>
-        </div>
-      )}
-
-      {/* --- %25 İHTİMALLE AÇILAN DİNAMİK NATALİ PANELİ --- */}
-      {isNataliHere ? (
-        <div style={{ background: 'linear-gradient(90deg, #1e1b4b 0%, #311042 100%)', border: '2px solid #d946ef', padding: '20px 30px', borderRadius: '20px', marginBottom: '35px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', animation: 'pulse 1.5s infinite' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ fontSize: '3.5rem' }}>👩‍🍳🌯</div>
-            <div>
-              <h3 style={{ margin: 0, color: '#f472b6' }}>🔥 ŞANS ANLARI: Natali Dükkana Geldi!</h3>
-              <p style={{ margin: '5px 0 0 0', color: '#cbd5e1', fontSize: '0.95rem' }}>
-                Natali tezgahı kurdu ama acelesi var! <strong>{nataliLeaveTimer} saniye</strong> sonra gidecek. Sıcak döneri <strong>100$</strong>'a kap, 1 dakika boyunca tüm geliştirmeleri **%10 indirimle** patlat!
-              </p>
-            </div>
-          </div>
-          <button 
-            onClick={buyDonerFromNatali}
-            disabled={totalCash < 100}
-            style={{ padding: '15px 35px', background: totalCash >= 100 ? '#ec4899' : '#3f1a3a', color: totalCash >= 100 ? '#ffffff' : '#64748b', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '1rem', cursor: totalCash >= 100 ? 'pointer' : 'not-allowed', boxShadow: totalCash >= 100 ? '0 4px 15px rgba(236,72,153,0.4)' : 'none' }}
-          >
-            Döner Satın Al ($100)
-          </button>
-        </div>
-      ) : (
-        <div style={{ background: '#090d16', border: '1px dashed #1e293b', padding: '15px 30px', borderRadius: '20px', marginBottom: '35px', color: '#475569', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span>💤 Natali şu an başka dükkanlarda döner satıyor... (Her 1 dakikada bir %25 ihtimalle buraya uğrar).</span>
         </div>
       )}
 
@@ -539,8 +706,23 @@ export default function App() {
 
       </div>
 
+      {/* --- SAĞ ALT KÖŞE SABİT SAVE ALANI --- */}
+      <div style={{ position: 'fixed', bottom: '25px', right: '25px', background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(8px)', border: '2px solid #22c55e', padding: '15px 20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', boxShadow: '0 8px 30px rgba(0,0,0,0.5)', zIndex: 9999 }}>
+        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', letterSpacing: '1px' }}>
+          📍 AKTİF KANAL: SLOT {selectedSlot}
+        </span>
+        <button
+          onClick={saveGame}
+          style={{ padding: '10px 25px', background: '#22c55e', color: '#020617', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.95rem', transition: 'transform 0.1s ease' }}
+          onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+          onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          💾 OYUNU KAYDET (SAVE)
+        </button>
+      </div>
+
       <footer style={{ marginTop: '60px', textAlign: 'center', color: '#334155', fontSize: '0.8rem' }}>
-        NECMİ'NİN YÜKSELİŞİ v5.1.0 | Kriz Döngüsü: {incidentTimer}s
+        NECMİ'NİN YÜKSELİŞİ v6.0.0 | Kriz Döngüsü: {incidentTimer}s
       </footer>
     </div>
   );
