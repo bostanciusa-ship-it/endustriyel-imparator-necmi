@@ -1,700 +1,517 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { 
+  TrendingUp, TrendingDown, Package, Truck, Target, 
+  Wallet, ChevronUp, RefreshCw, AlertTriangle, Play, CheckCircle, HelpCircle, Save
+} from 'lucide-react';
 
-/**
- * ============================================================================
- * 🔊 SİBER SES SENTEZLEYİCİ ÜNİTESİ
- * ============================================================================
- */
-const playSfx = (type: string) => {
-  try {
-    const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const context = new AudioContextClass();
-    const oscillator = context.createOscillator();
-    const gainNode = context.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(context.destination);
-    
-    const startTime = context.currentTime;
-
-    if (type === 'click') {
-      oscillator.frequency.setValueAtTime(160, startTime);
-      oscillator.frequency.exponentialRampToValueAtTime(30, startTime + 0.1);
-      gainNode.gain.setValueAtTime(0.12, startTime);
-      gainNode.gain.linearRampToValueAtTime(0, startTime + 0.1);
-      oscillator.start();
-      oscillator.stop(startTime + 0.1);
-    } 
-    else if (type === 'buy') {
-      oscillator.frequency.setValueAtTime(220, startTime);
-      oscillator.frequency.linearRampToValueAtTime(660, startTime + 0.2);
-      gainNode.gain.setValueAtTime(0.1, startTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.2);
-      oscillator.start();
-      oscillator.stop(startTime + 0.2);
-    }
-    else if (type === 'alert') {
-      oscillator.type = 'sawtooth';
-      oscillator.frequency.setValueAtTime(330, startTime);
-      oscillator.frequency.exponentialRampToValueAtTime(110, startTime + 0.4);
-      gainNode.gain.setValueAtTime(0.06, startTime);
-      oscillator.start();
-      oscillator.stop(startTime + 0.4);
-    }
-    else if (type === 'gold') {
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(440, startTime);
-      oscillator.frequency.linearRampToValueAtTime(880, startTime + 0.3);
-      gainNode.gain.setValueAtTime(0.15, startTime);
-      oscillator.start();
-      oscillator.stop(startTime + 0.3);
-    }
-  } catch (error) {
-    console.warn("Ses engellendi.");
-  }
-};
-
-interface SaveData {
-  totalCash: number;
-  currentInventory: number;
-  currentMarketValue: number;
-  lvlManualProduction: number;
-  lvlAutomatedWorkers: number;
-  lvlMarketingCampaigns: number;
-  lvlStorageCapacity: number;
-  lvlLogisticsTrucks: number;
-  savedAt: string;
+interface SaveSlot {
+  id: number;
+  label: string;
+  savedAt: string | null;
 }
 
 export default function App() {
-  // --- MENÜ VE SAVE SİSTEMİ DURUMLARI ---
-  const [isInMainMenu, setIsInMainMenu] = useState(true);
-  const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
-  const [slotsData, setSlotsData] = useState<{ [key: number]: SaveData | null }>({ 1: null, 2: null, 3: null });
-
-  // --- HİKAYE VE INTRO DURUMLARI ---
-  const [introStage, setIntroStage] = useState(0); 
-  const [introText, setIntroText] = useState("");
-  const [gameStarted, setGameStarted] = useState(false);
+  // --- TEMEL EKONOMİ STATE'LERİ ---
+  const [money, setMoney] = useState<number>(295);
+  const [stock, setStock] = useState<number>(7.5);
+  const [maxStock, setMaxStock] = useState<number>(40);
+  const [stockPrice, setStockPrice] = useState<number>(18.08);
+  const [priceTrend, setPriceTrend] = useState<'up' | 'down'>('up');
   
-  // --- BASKIN (RAID) SİNEMATİK DURUMLARI ---
-  const [raidStarted, setRaidStarted] = useState(false);
-  const [raidStage, setRaidStage] = useState(0);
-  const [raidText, setRaidText] = useState("");
-
-  // --- EKONOMİK DURUMLAR ---
-  const [totalCash, setTotalCash] = useState(250);
-  const [currentInventory, setCurrentInventory] = useState(0);
-  const [currentMarketValue, setCurrentMarketValue] = useState(18.00);
-  const [marketDirection, setMarketDirection] = useState<'up' | 'down'>('up');
-
-  // --- COOKIE CLICKER MANTIĞI: ALTIN TIR DURUMLARI ---
-  const [goldTruck, setGoldTruck] = useState<{ x: number; y: number } | null>(null);
-  const [frenzyTimer, setFrenzyTimer] = useState(0); 
-
-  // --- RISK ODASI (KUMARHANE) DURUMLARI ---
-  const [gambleAmount, setGambleAmount] = useState(50);
-  const [gambleResult, setGambleResult] = useState<string | null>(null);
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [tutorialDiceResult, setTutorialDiceResult] = useState<string | null>(null);
-
-  // --- NATALİ SİSTEMİ DURUMLARI ---
-  const [isNataliHere, setIsNataliHere] = useState(false); 
-  const [nataliLeaveTimer, setNataliLeaveTimer] = useState(0); 
-  const [nataliArrivalCheckTimer, setNataliArrivalCheckTimer] = useState(60); 
-  const [donerBuffTimer, setDonerBuffTimer] = useState(0); 
-
   // --- GELİŞTİRME SEVİYELERİ ---
-  const [lvlManualProduction, setLvlManualProduction] = useState(1);
-  const [lvlAutomatedWorkers, setLvlAutomatedWorkers] = useState(0);
-  const [lvlMarketingCampaigns, setLvlMarketingCampaigns] = useState(1);
-  const [lvlStorageCapacity, setLvlStorageCapacity] = useState(1);
-  const [lvlLogisticsTrucks, setLvlLogisticsTrucks] = useState(0);
+  const [clickLvl, setClickLvl] = useState<number>(1);
+  const [workerLvl, setWorkerLvl] = useState<number>(0);
+  const [truckLvl, setTruckLvl] = useState<number>(0);
+  const [marketingLvl, setMarketingLvl] = useState<number>(1);
+  const [storageLvl, setStorageLvl] = useState<number>(1);
 
-  // --- SAYAÇLAR VE EVENT YÖNETİMİ ---
-  const [incidentTimer, setIncidentTimer] = useState(120);
-  const [activeIncident, setActiveIncident] = useState<{title: string, end: number} | null>(null);
-  const [isStrikeActive, setIsStrikeActive] = useState(false);
-  const [shipmentCountdown, setShipmentCountdown] = useState(3);
+  // --- ZAMANLAYICILAR VE DÖNGÜLER ---
+  const [deliveryTimer, setDeliveryTimer] = useState<number>(3);
+  const [crisisTimer, setCrisisTimer] = useState<number>(117);
+  const [luckyTimer, setLuckyTimer] = useState<number>(57);
+  const [activeSlot, setActiveSlot] = useState<number>(1);
 
-  const stateRef = useRef({ lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory, totalCash, raidStarted, frenzyTimer });
+  // --- ALTIN TIR MEKANİĞİ ---
+  const [goldTruckActive, setGoldTruckActive] = useState<boolean>(false);
+  const [goldTruckMultiplier, setGoldTruckMultiplier] = useState<number>(1);
+  const [goldTruckTimer, setGoldTruckTimer] = useState<number>(0);
+
+  // --- KUMAR ODASI & ÖĞRETİCİ STATE'LERİ ---
+  const [diceResult, setDiceResult] = useState<number | null>(null);
+  const [gambleAmount, setGambleAmount] = useState<string>('50');
+  const [gambleMessage, setGambleMessage] = useState<string>('');
+  const [isGambleSuccess, setIsGambleSuccess] = useState<boolean | null>(null);
   
-  const getHQVisuals = () => {
-    if (totalCash < 5000) return { name: "🏚️ Köhne Gecekondu Lojistik", color: '#64748b' };
-    if (totalCash < 50000) return { name: "🏭 Prefabrik Dağıtım Merkezi", color: '#3b82f6' };
-    if (totalCash < 250000) return { name: "🏢 Çelik Konstrüksiyon Plaza", color: '#a855f7' };
-    return { name: "🌐 Siber Global Ahmet-Kıran Kompleksi", color: '#22c55e' };
+  const [showTutorial, setShowTutorial] = useState<boolean>(true);
+  const [tutorialStep, setTutorialStep] = useState<number>(1);
+  const [acceptRisks, setAcceptRisks] = useState<boolean>(false);
+
+  // --- KAYIT SLOTLARI ---
+  const [slots, setSlots] = useState<SaveSlot[]>([
+    { id: 1, label: 'SLOT 1', savedAt: 'Aktif Otomatik' },
+    { id: 2, label: 'SLOT 2', savedAt: null },
+    { id: 3, label: 'SLOT 3', savedAt: null },
+  ]);
+
+  // --- HEDEF TANIMI ---
+  const targetMoney = 1000000;
+  const moneyToTarget = Math.max(0, targetMoney - money);
+
+  // --- GELİŞTİRME MALİYETLERİ ---
+  const costs = {
+    click: 200 * clickLvl,
+    worker: 500 * (workerLvl + 1),
+    truck: 550 * (truckLvl + 1),
+    marketing: 600 * marketingLvl,
+    storage: 650 * storageLvl,
   };
 
+  // --- OYUN DÖNGÜLERİ (EFFECTS) ---
   useEffect(() => {
-    const loadedSlots: { [key: number]: SaveData | null } = { 1: null, 2: null, 3: null };
-    for (let i = 1; i <= 3; i++) {
-      const saved = localStorage.getItem(`necmi_save_slot_${i}`);
-      if (saved) {
-        try { loadedSlots[i] = JSON.parse(saved); } catch (e) { console.error(e); }
-      }
-    }
-    setSlotsData(loadedSlots);
-  }, [isInMainMenu]);
-
-  useEffect(() => {
-    stateRef.current = { lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory, totalCash, raidStarted, frenzyTimer };
-    if (totalCash >= 1000000 && !raidStarted && gameStarted && !isInMainMenu) {
-      setRaidStarted(true);
-      playSfx('buy');
-    }
-  }, [lvlMarketingCampaigns, lvlLogisticsTrucks, currentMarketValue, currentInventory, totalCash, raidStarted, gameStarted, isInMainMenu, frenzyTimer]);
-
-  const storyDialogs = [
-    "📍 AHMET HOLDİNG - MERKEZ OFİS (KOVULMA ANI)...",
-    "💼 Ahmet Bey: 'Duyduklarıma göre lojistiği büyütecekmişsin Necmi? Kamyon filosu falan... Gereksiz!'",
-    "💼 Ahmet Bey: 'Burada kuralları ben koyarım Necmi! Kovuldun! Şimdi git o projelerini başka yerde sat!'",
-    "🚪 *KAPISI ÇARPIP DÜKKANDAN ÇIKARSIN VE HOLDİNG BİNASININ ÖNÜNDE TEK BAŞINA KALIRSIN...*",
-    "🔥 Necmi (Kendi Kendine): 'Eski patronumdan intikam almalıyım, milyoner olmalıyım! Sıfırdan başlayıp tam 1 MİLYON DOLAR yapacağım!'",
-    "🚀 Necmi (Kendi Kendine): 'O 1 milyonu kasaya koyduğum gün, senin o köhne şirketi borsadan tamamen sileceğim ****** çocuğu! İZLE VE GÖR!'"
-  ];
-
-  const raidDialogs = [
-    "🚨 ALARM! NECMİ LOJİSTİK TIR FİLOSU AHMET HOLDİNG KAPISINA DAYANDI! 🚨",
-    "💥 GÜÜÜÜÜM! Necmi'nin satın aldığı dev tırlar holdingin ana giriş camlarını tuzla buz ederek içeri giriyor!",
-    "🏃‍♂️ Güvenlikler kaçışıyor! Necmi, arkasında yüzlerce lojistik işçisiyle koridorları eze eze ilerliyor!",
-    "🚪 ASANSÖR YUKARI ÇIKIYOR... 30. KAT... BAŞKANLIK OFİSİ KAPISI TEKMEYLE KIRILIYOR!",
-    "👴💼 Ahmet Bey (Korkudan titreyerek): 'N-Necmi?! Bu tırlar... Bu adamlar kim?! Güvenlik!!'",
-    "😡 Necmi: 'Demek kamyonlarım gereksizmiş he? Boş konuşuyordun, lojistiği küçümsüyordun...'",
-    "🔥 Necmi: 'Al şunları ****** çocuğu!!'",
-    "💸 *Necmi, çantasından çıkardığı tam 1 MİLYON DOLARLIK nakit balyalarını Ahmet Bey'in suratına, masasına ve üstüne fırlatır! Ofis adeta para yağmuruna tutulur!*",
-    "📉 Necmi: 'Bitti Ahmet. Şirketinin tüm hisselerini satın aldım. Şimdi bu binayı tırlarımla dümdüz edeceğim, sen de sokağa döneceksin!'"
-  ];
-
-  const saveGame = () => {
-    if (selectedSlot === null) return;
-    const dataToSave: SaveData = {
-      totalCash, currentInventory, currentMarketValue, lvlManualProduction,
-      lvlAutomatedWorkers, lvlMarketingCampaigns, lvlStorageCapacity, lvlLogisticsTrucks,
-      savedAt: new Date().toLocaleTimeString()
-    };
-    localStorage.setItem(`necmi_save_slot_${selectedSlot}`, JSON.stringify(dataToSave));
-    playSfx('buy');
-    setSlotsData(prev => ({ ...prev, [selectedSlot]: dataToSave }));
-    alert(`Oyun Başarıyla Slot ${selectedSlot}'e Kaydedildi!`);
-  };
-
-  const handleStartGame = () => {
-    if (selectedSlot === null) {
-      playSfx('alert');
-      alert("Lütfen oynamak veya sıfırdan başlamak için bir Slot seçin!");
-      return;
-    }
-    playSfx('click');
-    const slotData = slotsData[selectedSlot];
-    if (slotData) {
-      setTotalCash(slotData.totalCash);
-      setCurrentInventory(slotData.currentInventory);
-      setCurrentMarketValue(slotData.currentMarketValue);
-      setLvlManualProduction(slotData.lvlManualProduction);
-      setLvlAutomatedWorkers(slotData.lvlAutomatedWorkers);
-      setLvlMarketingCampaigns(slotData.lvlMarketingCampaigns);
-      setLvlStorageCapacity(slotData.lvlStorageCapacity);
-      setLvlLogisticsTrucks(slotData.lvlLogisticsTrucks ?? 0);
-      setIsInMainMenu(false);
-      setGameStarted(true);
-    } else {
-      setTotalCash(250); setCurrentInventory(0); setLvlManualProduction(1);
-      setLvlAutomatedWorkers(0); setLvlMarketingCampaigns(1); setLvlStorageCapacity(1); setLvlLogisticsTrucks(0);
-      setIsInMainMenu(false); setIntroStage(0);
-    }
-  };
-
-  const handleGoldTruckClick = () => {
-    playSfx('gold');
-    setFrenzyTimer(15); 
-    setGoldTruck(null);
-  };
-
-  // --- GERÇEK KAZANÇ / BATMA KUMAR MEKANİZMASI ---
-  const handleGamble = () => {
-    if (totalCash < gambleAmount || gambleAmount <= 0) {
-      playSfx('alert');
-      setGambleResult("❌ Kasanda bu kadar nakit yok!");
-      return;
-    }
-    playSfx('click');
-    
-    // 1 ile 6 arasında rastgele bir zar
-    const dice = Math.floor(Math.random() * 6) + 1;
-    
-    if (dice >= 1 && dice <= 3) {
-      // 1, 2, 3 gelirse: BATALIM!
-      setTotalCash(prev => Math.max(0, prev - gambleAmount));
-      setGambleResult(`🎲 Zar: ${dice} | 🟥 BATTIK! Kumar Pişmanlıktır. Kasadan -$${gambleAmount} uçtu.`);
-      playSfx('alert');
-    } else {
-      // 4, 5, 6 gelirse: X2 KATLAYALIM!
-      setTotalCash(prev => prev + gambleAmount);
-      setGambleResult(`🎲 Zar: ${dice} | 🟩 KATLANDI! Şansın yaver gitti ve +$${gambleAmount} kazandın! (Ama unutma, kasa hep kazanır!)`);
-      playSfx('buy');
-    }
-  };
-
-  // --- ÜCRETSİZ / RİSKSİZ ÖĞRETİCİ ZARI ---
-  const handleTutorialGamble = () => {
-    playSfx('click');
-    const dice = Math.floor(Math.random() * 6) + 1;
-    if (dice >= 1 && dice <= 3) {
-      setTutorialDiceResult(`🎲 Öğretici Zarı: ${dice} | 🟥 Bak gördün mü? 1-3 arası geldi ve SANAL paran battı! Gerçek olsaydı her şeyini kaybetmiştin.`);
-    } else {
-      setTutorialDiceResult(`🎲 Öğretici Zarı: ${dice} | 🟩 Şansına 4-6 arası geldi ve SANAL olarak X2 katladın. Ama gerçek riskte bu kadar şanslı olmayabilirsin!`);
-    }
-  };
-
-  useEffect(() => {
-    if (isInMainMenu || gameStarted) return;
-    let charIndex = 0; setIntroText("");
-    const currentLine = storyDialogs[introStage];
-    const typingInterval = setInterval(() => {
-      if (charIndex < currentLine.length) {
-        setIntroText((prev) => prev + currentLine.charAt(charIndex));
-        charIndex++;
-      } else {
-        clearInterval(typingInterval);
-        setTimeout(() => {
-          if (introStage < storyDialogs.length - 1) setIntroStage(prev => prev + 1);
-          else { setGameStarted(true); playSfx('buy'); }
-        }, 3200);
-      }
-    }, 30);
-    return () => clearInterval(typingInterval);
-  }, [introStage, gameStarted, isInMainMenu]);
-
-  useEffect(() => {
-    if (!raidStarted) return;
-    let charIndex = 0; setRaidText("");
-    const currentLine = raidDialogs[raidStage];
-    const typingInterval = setInterval(() => {
-      if (charIndex < currentLine.length) {
-        setRaidText((prev) => prev + currentLine.charAt(charIndex));
-        charIndex++;
-      } else {
-        clearInterval(typingInterval);
-        setTimeout(() => {
-          if (raidStage < raidDialogs.length - 1) setRaidStage(prev => prev + 1);
-        }, 4000);
-      }
-    }, 35);
-    return () => clearInterval(typingInterval);
-  }, [raidStarted, raidStage]);
-
-  const handleNataliYes = () => {
-    if (totalCash >= 100) {
-      setTotalCash(prev => prev - 100); setDonerBuffTimer(60); setIsNataliHere(false); setNataliLeaveTimer(0); playSfx('buy');
-    } else { playSfx('alert'); }
-  };
-
-  const getDiscountedCost = (baseCost: number) => donerBuffTimer > 0 ? Math.floor(baseCost * 0.90) : baseCost;
-
-  const costManual = getDiscountedCost(Math.floor(200 * Math.pow(1.25, lvlManualProduction - 1)));
-  const costAutomation = getDiscountedCost(Math.floor(500 * Math.pow(1.28, lvlAutomatedWorkers)));
-  const costMarketing = getDiscountedCost(Math.floor(600 * Math.pow(1.22, lvlMarketingCampaigns - 1)));
-  const costStorage = getDiscountedCost(Math.floor(650 * Math.pow(1.20, lvlStorageCapacity - 1)));
-  const costLogistics = getDiscountedCost(Math.floor(550 * Math.pow(1.35, lvlLogisticsTrucks)));
-
-  const upgradeManualPower = () => { if (totalCash >= costManual) { setTotalCash(prev => prev - costManual); setLvlManualProduction(prev => prev + 1); playSfx('buy'); } };
-  const hireAutomatedWorker = () => { if (totalCash >= costAutomation) { setTotalCash(prev => prev - costAutomation); setLvlAutomatedWorkers(prev => prev + 1); playSfx('buy'); } };
-  const expandMarketingDepth = () => { if (totalCash >= costMarketing) { setTotalCash(prev => prev - costMarketing); setLvlMarketingCampaigns(prev => prev + 1); playSfx('buy'); } };
-  const expandWarehouseSpace = () => { if (totalCash >= costStorage) { setTotalCash(prev => prev - costStorage); setLvlStorageCapacity(prev => prev + 1); playSfx('buy'); } };
-  const purchaseLogisticsTruck = () => { if (totalCash >= costLogistics) { setTotalCash(prev => prev - costLogistics); setLvlLogisticsTrucks(prev => prev + 1); playSfx('buy'); } };
-
-  const handleResolve = () => {
-    if (!activeIncident) return;
-    if (isStrikeActive && totalCash < 100) return;
-    if (isStrikeActive) setTotalCash(c => c - 100);
-    setActiveIncident(null); setIsStrikeActive(false); playSfx('buy');
-  };
-
-  useEffect(() => {
-    if (isInMainMenu || !gameStarted || stateRef.current.raidStarted) return;
-
-    const marketFluxInterval = setInterval(() => {
-      setCurrentMarketValue(oldPrice => {
-        const volatility = (Math.random() * 8 - 4);
-        const updatedPrice = Math.max(12, Math.min(48, oldPrice + volatility));
-        setMarketDirection(updatedPrice > oldPrice ? 'up' : 'down');
-        return updatedPrice;
-      });
-    }, 5000);
-
-    const goldTruckSpawnInterval = setInterval(() => {
-      if (Math.random() < 0.35 && !goldTruck) {
-        const randomX = Math.floor(Math.random() * (window.innerWidth - 120));
-        const randomY = Math.floor(Math.random() * (window.innerHeight - 120));
-        setGoldTruck({ x: randomX, y: randomY });
-        setTimeout(() => setGoldTruck(null), 5000);
-      }
-    }, 25000);
-
-    const systemHeartbeat = setInterval(() => {
-      setDonerBuffTimer(prev => (prev > 0 ? prev - 1 : 0));
-      setFrenzyTimer(prev => (prev > 0 ? prev - 1 : 0));
-
-      setNataliLeaveTimer(prev => {
-        if (prev <= 1 && isNataliHere) { setIsNataliHere(false); return 0; }
-        return prev > 0 ? prev - 1 : 0;
-      });
-
-      setNataliArrivalCheckTimer(prevTime => {
-        if (prevTime <= 1) {
-          if (Math.random() <= 0.25 && !isNataliHere) {
-            setIsNataliHere(true); setNataliLeaveTimer(30); playSfx('buy');
-          }
-          return 60; 
-        }
-        return prevTime - 1;
-      });
-
-      if (!isStrikeActive) {
-        setCurrentInventory(inventory => {
-          const capacityLimit = lvlStorageCapacity * 40;
-          const isFrenzy = stateRef.current.frenzyTimer > 0;
-          const productionOutput = (lvlAutomatedWorkers * 0.25) * (isFrenzy ? 5 : 1);
-          return Math.min(inventory + productionOutput, capacityLimit);
-        });
+    const interval = setInterval(() => {
+      // 1. Otomatik İşçi Üretimi
+      if (workerLvl > 0) {
+        setStock(prev => Math.min(maxStock, prev + (workerLvl * 0.2)));
       }
 
-      setShipmentCountdown(currentSec => {
-        if (currentSec <= 1) {
-          const currentRefData = stateRef.current;
-          const isFrenzy = currentRefData.frenzyTimer > 0;
-          const unitsToSell = (1 + (currentRefData.lvlMarketingCampaigns * 0.25) + (currentRefData.lvlLogisticsTrucks * 0.5)) * (isFrenzy ? 3 : 1);
-          
-          setCurrentInventory(actualInventory => {
-            const finalSoldAmount = Math.min(actualInventory, unitsToSell);
-            if (finalSoldAmount > 0) {
-              setTotalCash(cashPool => cashPool + (finalSoldAmount * currentRefData.currentMarketValue));
-              return Math.max(0, actualInventory - finalSoldAmount);
-            }
-            return actualInventory;
+      // 2. Kamyon Sevkiyat Sayacı
+      setDeliveryTimer(prev => {
+        if (prev <= 1) {
+          // Satış Gerçekleşiyor
+          setStock(currentStock => {
+            const soldAmount = currentStock;
+            const revenue = soldAmount * stockPrice * (1 + (marketingLvl * 0.05)) * goldTruckMultiplier;
+            setMoney(m => m + revenue);
+            return 0;
           });
-          return 3;
+          return Math.max(1, 3 - (truckLvl * 0.2));
         }
-        return currentSec - 1;
+        return prev - 1;
       });
 
-      if (!activeIncident) {
-        setIncidentTimer(prevTime => {
-          if (prevTime <= 1) {
-            playSfx('alert');
-            const chance = Math.random();
-            const incidentType = chance > 0.5 ? "MALİ DENETİM" : "İŞÇİ GREVİ";
-            setActiveIncident({ title: incidentType, end: Date.now() + 8500 });
-            if (incidentType === "İŞÇİ GREVİ") setIsStrikeActive(true);
-            return 120;
-          }
-          return prevTime - 1;
-        });
-      }
+      // 3. Kriz Döngüsü Sayacı
+      setCrisisTimer(prev => {
+        if (prev <= 1) {
+          setStockPrice(p => {
+            const drop = Math.random() * 5 + 2;
+            setPriceTrend('down');
+            return Math.max(5, Number((p - drop).toFixed(2)));
+          });
+          return 120;
+        }
+        return prev - 1;
+      });
 
-      if (activeIncident && Date.now() > activeIncident.end) {
-        setTotalCash(prev => Math.max(0, prev * 0.88));
-        setActiveIncident(null); setIsStrikeActive(false); setIncidentTimer(120); playSfx('alert');
-      }
+      // 4. Şans Sayacı & Borsa Dalgalanması
+      setLuckyTimer(prev => {
+        if (prev <= 1) {
+          setStockPrice(p => {
+            const change = (Math.random() * 4 - 1.5);
+            setPriceTrend(change >= 0 ? 'up' : 'down');
+            return Math.max(5, Number((p + change).toFixed(2)));
+          });
+
+          // %25 İhtimalle Altın Tır Çıkma Şansı
+          if (!goldTruckActive && Math.random() < 0.25) {
+            setGoldTruckActive(true);
+            setGoldTruckMultiplier(5);
+            setGoldTruckTimer(15); // 15 saniye x5 çılgınlığı
+          }
+
+          return 60;
+        }
+        return prev - 1;
+      });
+
+      // 5. Altın Tır Geri Sayımı
+      setGoldTruckTimer(prev => {
+        if (prev <= 1) {
+          setGoldTruckActive(false);
+          setGoldTruckMultiplier(1);
+          return 0;
+        }
+        return prev - 1;
+      });
+
     }, 1000);
 
-    return () => { clearInterval(marketFluxInterval); clearInterval(systemHeartbeat); clearInterval(goldTruckSpawnInterval); };
-  }, [gameStarted, isInMainMenu, isStrikeActive, activeIncident, lvlStorageCapacity, lvlAutomatedWorkers, isNataliHere, goldTruck]);
+    return () => clearInterval(interval);
+  }, [workerLvl, maxStock, stockPrice, marketingLvl, truckLvl, goldTruckMultiplier, goldTruckActive]);
 
-  if (isInMainMenu) {
-    return (
-      <div style={{ backgroundColor: '#020617', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#f8fafc', fontFamily: 'monospace', padding: '20px' }}>
-        <div style={{ maxWidth: '650px', width: '100%', background: '#0f172a', border: '3px solid #3b82f6', padding: '40px', borderRadius: '24px', textAlign: 'center', boxShadow: '0 0 40px rgba(59, 130, 246, 0.25)' }}>
-          <h1 style={{ color: '#3b82f6', fontSize: '2.2rem', marginBottom: '10px', letterSpacing: '1px' }}>NECMİ'NİN YÜKSELİŞİ</h1>
-          <p style={{ color: '#64748b', marginBottom: '30px', fontSize: '0.95rem' }}>Lütfen oynamak istediğiniz kayıt barını seçin:</p>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '35px' }}>
-            {[1, 2, 3].map((slotNumber) => {
-              const hasData = slotsData[slotNumber] !== null;
-              const isSelected = selectedSlot === slotNumber;
-              const data = slotsData[slotNumber];
+  // --- AKSİYONLAR ---
+  const handleManualProduction = () => {
+    setStock(prev => Math.min(maxStock, prev + clickLvl));
+  };
 
-              return (
-                <div 
-                  key={slotNumber}
-                  onClick={() => { setSelectedSlot(slotNumber); playSfx('click'); }}
-                  style={{
-                    padding: '20px', borderRadius: '14px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s ease',
-                    backgroundColor: isSelected ? '#1e293b' : '#090d16',
-                    border: isSelected ? '2px solid #22c55e' : '2px solid #1e293b',
-                    boxShadow: isSelected ? '0 0 15px rgba(34, 197, 148, 0.2)' : 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 'bold', color: isSelected ? '#22c55e' : '#f8fafc', fontSize: '1.1rem' }}>
-                      💾 SLOT {slotNumber} {isSelected && "• (SEÇİLDİ)"}
-                    </span>
-                    <span style={{ fontSize: '0.8rem', color: '#475569' }}>
-                      {hasData ? `Son Kayıt: ${data?.savedAt}` : "BOŞ YUVA"}
-                    </span>
-                  </div>
-                  <div style={{ marginTop: '10px', fontSize: '0.9rem', color: '#94a3b8' }}>
-                    {hasData ? (
-                      <div>💰 Kasa: <strong style={{ color: '#22c55e' }}>${Math.floor(data!.totalCash).toLocaleString()}</strong> | 📦 Stok: <strong>{data!.currentInventory.toFixed(0)} b.</strong></div>
-                    ) : (
-                      <span style={{ color: '#475569', fontStyle: 'italic' }}>Kayıtlı dosya yok.</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+  const buyUpgrade = (type: 'click' | 'worker' | 'truck' | 'marketing' | 'storage') => {
+    const cost = costs[type];
+    if (money >= cost) {
+      setMoney(prev => prev - cost);
+      if (type === 'click') setClickLvl(p => p + 1);
+      if (type === 'worker') setWorkerLvl(p => p + 1);
+      if (type === 'truck') setTruckLvl(p => p + 1);
+      if (type === 'marketing') setMarketingLvl(p => p + 1);
+      if (type === 'storage') {
+        setStorageLvl(p => p + 1);
+        setMaxStock(p => p + 20);
+      }
+    }
+  };
 
-          <button
-            onClick={handleStartGame}
-            style={{
-              width: '100%', padding: '20px', fontSize: '1.3rem', fontWeight: 'bold', border: 'none', borderRadius: '14px',
-              backgroundColor: selectedSlot !== null ? '#22c55e' : '#334155', color: selectedSlot !== null ? '#020617' : '#64748b',
-              cursor: selectedSlot !== null ? 'pointer' : 'not-allowed'
-            }}
-          >
-            BAŞLAT / DEVAM ET
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // --- KUMAR ZAR ATMA MEKANİĞİ ---
+  const handleRollDice = () => {
+    const amount = Number(gambleAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setGambleMessage('Geçerli bir miktar gir reis!');
+      return;
+    }
+    if (money < amount) {
+      setGambleMessage('Kasanda bu kadar nakit yok!');
+      return;
+    }
 
-  if (!gameStarted) {
-    return (
-      <div style={{ backgroundColor: '#020617', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#f8fafc', fontFamily: 'monospace', padding: '20px', position: 'relative' }}>
-        <button 
-          onClick={() => { setGameStarted(true); playSfx('buy'); }}
-          style={{ position: 'absolute', top: '30px', right: '30px', padding: '12px 30px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', borderRadius: '10px', color: '#fecaca', fontWeight: 'bold', cursor: 'pointer' }}
-        >
-          ⏭️ HİKAYEYİ GEÇ
-        </button>
-        <div style={{ maxWidth: '700px', background: 'rgba(15, 23, 42, 0.85)', border: '2px solid rgba(59, 130, 246, 0.6)', padding: '45px', borderRadius: '24px', textAlign: 'center' }}>
-          <div style={{ fontSize: '4.5rem', marginBottom: '25px' }}>💼🚪</div>
-          <div style={{ minHeight: '140px', fontSize: '1.45rem', lineHeight: '1.65', color: '#38bdf8' }}>{introText}</div>
-        </div>
-      </div>
-    );
-  }
+    const roll = Math.floor(Math.random() * 6) + 1;
+    setDiceResult(roll);
 
-  if (raidStarted) {
-    return (
-      <div style={{ backgroundColor: '#020617', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#f8fafc', fontFamily: 'monospace', padding: '20px', textAlign: 'center' }}>
-        <div style={{ maxWidth: '750px', background: 'rgba(10, 15, 30, 0.95)', border: '3px solid #22c55e', padding: '50px', borderRadius: '30px' }}>
-          <div style={{ fontSize: '5.5rem', marginBottom: '20px' }}>💸👑</div>
-          <div style={{ minHeight: '160px', fontSize: '1.5rem', color: '#e2e8f0', fontWeight: 'bold' }}>{raidText}</div>
-          {raidStage === raidDialogs.length - 1 && (
-            <button onClick={() => window.location.reload()} style={{ padding: '18px 45px', background: '#22c55e', color: '#020617', border: 'none', borderRadius: '16px', fontWeight: 'bold', fontSize: '1.2rem', cursor: 'pointer', marginTop: '30px' }}>
-              MENÜYE DÖN
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+    if (roll <= 3) {
+      // BATTIK
+      setMoney(prev => Math.max(0, prev - amount));
+      setIsGambleSuccess(false);
+      setGambleMessage(`Zar ${roll} geldi! Yeraltı çetesi parana çöktü, -$${amount.toLocaleString()}!`);
+    } else {
+      // KATLADIK
+      setMoney(prev => prev + amount);
+      setIsGambleSuccess(true);
+      setGambleMessage(`Zar ${roll} geldi! Masayı patlattın, +$${amount.toLocaleString()} kazandın!`);
+    }
+  };
 
-  const hqInfo = getHQVisuals();
+  const saveGame = (slotId: number) => {
+    setActiveSlot(slotId);
+    setSlots(prev => prev.map(s => s.id === slotId ? { ...s, savedAt: new Date().toLocaleTimeString() } : s));
+    alert(`Oyun başarıyla SLOT ${slotId} üzerine kaydedildi!`);
+  };
+
+  // --- DİNAMİK ŞİRKET UNVANI ---
+  const getCompanyStatus = () => {
+    if (money >= 500000) return '🏢 SİBER GLOBAL KOMPLEKS';
+    if (money >= 100000) return '🏭 ENDÜSTRİYEL ENTEGRE TESİS';
+    if (money >= 10000) return '🏪 BÖLGESEL DAĞITIM MERKEZİ';
+    return '🏚️ GECEKONDU LOJİSTİK ÜSSÜ';
+  };
 
   return (
-    <div style={{ backgroundColor: '#020617', minHeight: '100vh', color: '#f8fafc', fontFamily: 'Segoe UI, sans-serif', padding: '40px', paddingBottom: '120px', position: 'relative' }}>
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 flex flex-col justify-between selection:bg-amber-500 selection:text-slate-950">
       
-      {/* 🎰 KUMAR ÖĞRETİCİSİ PANELİ (POP-UP OVERLAY) */}
+      {/* ÖĞRETİCİ MODAL (KUMAR KORUMASI) */}
       {showTutorial && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(2, 6, 23, 0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 99999, padding: '20px' }}>
-          <div style={{ maxWidth: '600px', width: '100%', background: '#0f172a', border: '3px dashed #a855f7', padding: '35px', borderRadius: '24px', textAlign: 'center', position: 'relative' }}>
-            
-            {/* SAĞ ÜSTTEKİ GEÇME TUŞU */}
-            <button 
-              onClick={() => { setShowTutorial(false); setTutorialDiceResult(null); playSfx('click'); }} 
-              style={{ position: 'absolute', top: '20px', right: '20px', background: '#334155', color: '#94a3b8', border: 'none', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}
-            >
-              ⏭️ ÖĞRETİCİSİ GEÇ
-            </button>
-
-            <h2 style={{ color: '#a855f7', marginTop: 0 }}>🎰 Necmi'nin Yeraltı Kumar Rehberi</h2>
-            
-            <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '12px', textAlign: 'left', fontSize: '0.95rem', lineHeight: '1.5', color: '#cbd5e1', marginBottom: '20px' }}>
-              <p><strong>❓ Kumar Nedir ve Ne Yapar?</strong> Yavaş giden üretim sürecinden sıkıldıysan, kasandaki paranın bir kısmını riske atarak hızlıca zenginleşmeni ya da tamamen batmanı sağlayan tehlikeli bir yan odadır.</p>
-              <p><strong>🎲 Kurallar Çok Basit:</strong> 1 ile 6 arasında rastgele bir zar atılır.</p>
-              <ul>
-                <li>🎲 <strong style={{ color: '#ef4444' }}>Zar 1, 2 veya 3 gelirse:</strong> Ortaya koyduğun tüm parayı kaybeder, <strong>BATARSIN!</strong></li>
-                <li>🎲 <strong style={{ color: '#22c55e' }}>Zar 4, 5 veya 6 gelirse:</strong> Ortaya koyduğun para tam <strong>2 KATINA (X2)</strong> katlanır!</li>
-              </ul>
-              <p style={{ color: '#f43f5e', fontWeight: 'bold', textAlign: 'center', border: '1px dashed #f43f5e', padding: '8px', borderRadius: '8px', marginTop: '10px' }}>
-                🚨 SPOILER (ÖNEMLİ UYARI): Kumar kesinlikle KÖTÜDÜR! Kasa her zaman %52 kazanma avantajına sahiptir. Ahmet'ten intikam alacağım diye tüm şirketi buraya yatırırsan donuna kadar batarsın reisim, dikkat et!
-              </p>
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-purple-500 rounded-xl p-6 max-w-md w-full shadow-2xl shadow-purple-500/20">
+            <div className="flex items-center gap-3 text-purple-400 mb-4">
+              <HelpCircle className="w-8 h-8 animate-pulse" />
+              <h2 className="text-xl font-black uppercase tracking-wider">Yeraltı Kumar Rehberi</h2>
             </div>
 
-            <div style={{ background: '#020617', padding: '20px', borderRadius: '14px', border: '1px solid #475569', marginBottom: '15px' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#eab308' }}>💸 Risksiz Bedava Deneme Zarı</h4>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 15px 0' }}>Sıfır maliyet, para kaybetmek yok. Şansını test et!</p>
-              <button onClick={handleTutorialGamble} style={{ background: '#eab308', color: '#020617', border: 'none', borderRadius: '8px', padding: '10px 20px', fontWeight: 'bold', cursor: 'pointer' }}>🎲 Zar At (Bedava)</button>
-              {tutorialDiceResult && <div style={{ marginTop: '15px', fontWeight: 'bold', color: '#f8fafc', fontSize: '0.95rem' }}>{tutorialDiceResult}</div>}
-            </div>
+            {tutorialStep === 1 && (
+              <div>
+                <p className="text-slate-300 text-sm leading-relaxed mb-4">
+                  Necmi'nin yeraltı odasında zarlar tamamen şansa dayalı döner reis. Kurallar basittir:
+                </p>
+                <ul className="space-y-2 text-xs text-slate-400 mb-6 bg-slate-950 p-3 rounded border border-slate-800">
+                  <li className="flex items-center gap-2 text-rose-400">❌ <strong className="text-rose-300">1, 2 veya 3 Gelirse:</strong> Koyduğun tüm parayı çete üter, batarsın!</li>
+                  <li className="flex items-center gap-2 text-emerald-400">💰 <strong className="text-emerald-300">4, 5 veya 6 Gelirse:</strong> Koyduğun parayı tam 2'ye katlar, kasayı uçurursun!</li>
+                </ul>
+                <div className="flex justify-between items-center text-xs text-amber-400 font-semibold mb-4 bg-amber-500/10 p-2 rounded border border-amber-500/20">
+                  ⚠️ UYARI: Dikkat et, tüm paranı tek zara basarsan Ahmet'e basacak bina bulamazsın!
+                </div>
+                <button 
+                  onClick={() => setTutorialStep(2)}
+                  className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-all"
+                >
+                  Riskleri Anladım, İlerle →
+                </button>
+              </div>
+            )}
 
-            <button 
-              onClick={() => { setShowTutorial(false); setTutorialDiceResult(null); playSfx('buy'); }} 
-              style={{ width: '100%', padding: '12px', background: '#22c55e', color: '#020617', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '1.05rem', cursor: 'pointer', marginTop: '10px' }}
-            >
-              KURALI ANLADIM, GERÇEK MASAYA GÖTÜR!
-            </button>
+            {tutorialStep === 2 && (
+              <div>
+                <p className="text-slate-300 text-sm mb-4">
+                  Yeraltı kumar odasında kaybolan paraların sorumluluğu tamamen Necmi'nin kararlılığına aittir. Sistemi açmak için onay vermelisin.
+                </p>
+                <label className="flex items-start gap-3 bg-slate-950 p-3 rounded border border-slate-800 mb-6 cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    checked={acceptRisks} 
+                    onChange={(e) => setAcceptRisks(e.target.checked)}
+                    className="mt-1 accent-purple-500 h-4 w-4"
+                  />
+                  <span className="text-xs text-slate-400 leading-tight">
+                    Kumar odasındaki zar mekaniğinin tamamen şans olduğunu biliyorum, batmayı da katlamayı da kabul ediyorum.
+                  </span>
+                </label>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => { setShowTutorial(false); setAcceptRisks(true); }}
+                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold py-2 rounded text-xs transition"
+                  >
+                    Öğreticiyi Geç
+                  </button>
+                  <button 
+                    disabled={!acceptRisks}
+                    onClick={() => setShowTutorial(false)}
+                    className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-900 disabled:text-purple-400 text-white font-bold py-2 rounded text-xs transition-all flex items-center justify-center gap-1"
+                  >
+                    <CheckCircle className="w-4 h-4" /> Kumarı Aktif Et
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {goldTruck && (
-        <div 
-          onClick={handleGoldTruckClick}
-          style={{
-            position: 'absolute', left: `${goldTruck.x}px`, top: `${goldTruck.y}px`,
-            fontSize: '3.5rem', cursor: 'pointer', zIndex: 10000,
-            animation: 'bounce 0.5s infinite alternate', filter: 'drop-shadow(0 0 20px #eab308)',
-            userSelect: 'none'
-          }}
-          title="ÇILGINLIK İÇİN TIKLA!"
-        >
-          ✨🚚✨
+      {/* ALTIN TIR BİLDİRİMİ BAR */}
+      {goldTruckActive && (
+        <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 text-center py-2 px-4 rounded-md font-black text-xs tracking-widest animate-pulse shadow-lg flex items-center justify-center gap-2 mb-4">
+          <Truck className="w-5 h-5 animate-bounce" /> 
+          ALTIN TIR AKTİF! SEVKİYATLAR KAZANCI 5'E KATLIYOR! ({goldTruckTimer}sn)
         </div>
       )}
 
-      {frenzyTimer > 0 && (
-        <div style={{ background: 'linear-gradient(90deg, #eab308, #ca8a04)', padding: '15px', borderRadius: '14px', textAlign: 'center', fontWeight: 'bold', color: '#020617', marginBottom: '25px', boxShadow: '0 0 25px rgba(234,179,8,0.5)', fontSize: '1.2rem', animation: 'pulse 1s infinite' }}>
-          ⚡ X5 ÜRETİM VE SEVKİYAT ÇILGINLIĞI AKTİF! SÜRE: {frenzyTimer}sn ⚡
+      {/* ÜST PANEL */}
+      <header className="border-b border-slate-800 pb-4 mb-4">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-xl font-black text-amber-500 tracking-wider">NECMİ'NİN GLOBAL LOJİSTİK ÜSSÜ</h1>
+            <p className="text-xs font-bold text-indigo-400 tracking-wide mt-0.5">{getCompanyStatus()}</p>
+          </div>
+          <div className="text-right">
+            <span className="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-400 font-mono border border-slate-800">
+              ⏱️ Şans Sayacı: {luckyTimer}sn
+            </span>
+          </div>
         </div>
-      )}
 
-      {isNataliHere && (
-        <div style={{ background: '#1e1b4b', border: '2px solid #3b82f6', padding: '15px 25px', borderRadius: '12px', marginBottom: '25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Natali geldi döner almak istermisin 100 dolar ({nataliLeaveTimer}sn)</span>
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <button onClick={handleNataliYes} disabled={totalCash < 100} style={{ padding: '8px 25px', background: totalCash >= 100 ? '#22c55e' : '#1e293b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Evet</button>
-            <button onClick={() => setIsNataliHere(false)} style={{ padding: '8px 25px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Hayır</button>
+        {/* HEDEF VE BAR */}
+        <div className="mt-4 bg-slate-900 p-3 rounded-lg border border-slate-800">
+          <div className="flex justify-between items-center mb-1.5 text-xs font-bold">
+            <span className="text-slate-400 flex items-center gap-1">
+              <Target className="w-4 h-4 text-rose-500" /> TARGET: Ahmet'in Binasını Basmak
+            </span>
+            <span className="text-rose-400 font-mono">Kalan: ${moneyToTarget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
           </div>
-        </div>
-      )}
-
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '20px', marginBottom: '40px' }}>
-        <div>
-          <h2 style={{ margin: 0, color: '#3b82f6' }}>... NECMİ'NİN GLOBAL LOJİSTİK ÜSSÜ ...</h2>
-          <div style={{ display: 'inline-block', marginTop: '6px', padding: '6px 16px', borderRadius: '8px', background: '#0f172a', border: `1px solid ${hqInfo.color}`, color: hqInfo.color, fontWeight: 'bold', fontSize: '0.9rem' }}>
-            Şirket Statüsü: {hqInfo.name}
-          </div>
-        </div>
-        
-        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-          <button onClick={() => { setIsInMainMenu(true); setGameStarted(false); playSfx('click'); }} style={{ padding: '10px 18px', background: '#1e293b', color: 'white', border: '1px solid #3b82f6', borderRadius: '10px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold' }}>🏠 ANA MENÜ</button>
-          <div style={{ background: '#0f172a', padding: '15px 25px', borderRadius: '15px', border: '1px solid #3b82f6', textAlign: 'right' }}>
-            <small style={{ color: '#64748b' }}>BASKINA KALAN PARA</small>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>${Math.max(0, 1000000 - Math.floor(totalCash)).toLocaleString()}</div>
-          </div>
-          <div style={{ background: '#0f172a', padding: '15px 25px', borderRadius: '15px', border: `1px solid ${marketDirection === 'up' ? '#22c55e' : '#ef4444'}`, textAlign: 'right' }}>
-            <small style={{ color: '#64748b' }}>BORSA DEĞERİ</small>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: marketDirection === 'up' ? '#22c55e' : '#ef4444' }}>${currentMarketValue.toFixed(2)}</div>
+          <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800">
+            <div 
+              className="bg-gradient-to-r from-rose-600 to-amber-500 h-full rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(100, (money / targetMoney) * 100)}%` }}
+            />
           </div>
         </div>
       </header>
 
-      {activeIncident && (
-        <div style={{ backgroundColor: '#7f1d1d', border: '2px solid #ef4444', padding: '25px', borderRadius: '20px', marginBottom: '40px', textAlign: 'center' }}>
-          <h2 style={{ margin: 0, color: '#fecaca' }}>⚠️ KRİZ: {activeIncident.title}</h2>
-          <button onClick={handleResolve} style={{ padding: '12px 40px', background: '#f8fafc', color: '#7f1d1d', border: 'none', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>KRİZE MÜDAHALE ET {isStrikeActive && "(-100$)"}</button>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: '30px', marginBottom: '50px', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: '250px', background: '#0f172a', padding: '30px', borderRadius: '25px', border: '1px solid #1e293b', textAlign: 'center' }}>
-          <div style={{ color: '#64748b', marginBottom: '10px' }}>NECMİ'NİN KASASI</div>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', color: '#22c55e' }}>${Math.floor(totalCash).toLocaleString()}</div>
-        </div>
+      {/* ANA EKONOMİ PANELİ */}
+      <main className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
         
-        <div style={{ flex: 1, minWidth: '250px', background: '#0f172a', padding: '30px', borderRadius: '25px', border: '1px solid #1e293b', textAlign: 'center' }}>
-          <div style={{ color: '#64748b', marginBottom: '10px' }}>STOK DURUMU</div>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', color: '#eab308' }}>{currentInventory.toFixed(1)} / {lvlStorageCapacity * 40}</div>
-          <div style={{ fontSize: '0.8rem', color: '#3b82f6', marginTop: '10px', fontWeight: 'bold' }}>🚚 SEVKİYAT: {shipmentCountdown}sn</div>
-        </div>
+        {/* SOL: FİNANS & DURUM */}
+        <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+          <div>
+            <div className="mb-4">
+              <p className="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-wider mb-1">
+                <Wallet className="w-3.5 h-3.5 text-emerald-400" /> Necmi'nin Kasası
+              </p>
+              <h2 className="text-3xl font-black text-emerald-400 font-mono">
+                ${money.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </h2>
+            </div>
 
-        {/* 🎰 SİMGEYE VEYA BUTONA TIKLAYINCA ÖĞRETİCİ AÇILAN KISIM */}
-        <div style={{ flex: 1.2, minWidth: '320px', background: '#111827', padding: '25px', borderRadius: '25px', border: '2px dashed #a855f7', position: 'relative' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-            {/* SİMGE tıklanırsa öğretici açılır */}
-            <span 
-              onClick={() => { setShowTutorial(true); playSfx('click'); }} 
-              style={{ fontSize: '1.4rem', cursor: 'pointer' }} 
-              title="Öğreticiyi Açmak İçin Tıkla!"
-            >
-              🎰
-            </span>
-            <span style={{ color: '#a855f7', fontWeight: 'bold', fontSize: '1.1rem' }}>YERALTI RISK ODASI</span>
-            <button 
-              onClick={() => { setShowTutorial(true); playSfx('click'); }}
-              style={{ background: '#3b82f6', color: 'white', border: 'none', borderBlock: 'none', borderRadius: '6px', padding: '2px 8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
-            >
-              Nasıl Oynanır?
-            </button>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <div className="bg-slate-950 p-2.5 rounded border border-slate-800">
+                <span className="text-[10px] block font-bold text-slate-500 uppercase">Borsa Değeri</span>
+                <span className={`text-base font-black font-mono flex items-center gap-1 mt-0.5 ${priceTrend === 'up' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  ${stockPrice} {priceTrend === 'up' ? <ChevronUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                </span>
+              </div>
+              <div className="bg-slate-950 p-2.5 rounded border border-slate-800">
+                <span className="text-[10px] block font-bold text-slate-500 uppercase">Stok Durumu</span>
+                <span className="text-base font-black text-blue-400 font-mono block mt-0.5">
+                  {stock.toFixed(1)} / {maxStock}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 p-3 rounded border border-slate-800 flex items-center justify-between text-xs font-semibold">
+              <span className="text-slate-400 flex items-center gap-1.5">
+                <Truck className="w-4 h-4 text-blue-500 animate-pulse" /> Sevkiyata Kalan Süre:
+              </span>
+              <span className="font-mono text-blue-400 text-sm bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                {deliveryTimer}sn
+              </span>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '10px' }}>
-            <input 
-              type="number" 
-              value={gambleAmount} 
-              onChange={(e) => setGambleAmount(Math.max(1, parseInt(e.target.value) || 0))}
-              style={{ width: '90px', background: '#1f2937', border: '1px solid #a855f7', color: 'white', borderRadius: '8px', padding: '8px', fontSize: '1rem', textAlign: 'center' }}
-            />
-            <button onClick={handleGamble} style={{ background: '#a855f7', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 15px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.95rem' }}>Zar At (Gerçek)</button>
+          <button 
+            onClick={handleManualProduction}
+            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-4 rounded-xl shadow-lg shadow-amber-500/10 transition-all duration-150 uppercase tracking-wider text-sm mt-4 active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            <Package className="w-5 h-5" /> Manuel Üretim Yap
+          </button>
+        </section>
+
+        {/* ORTA: YATIRIMLAR & GELİŞTİRMELER */}
+        <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+          <h3 className="text-xs font-black text-slate-400 tracking-wider uppercase mb-3">Yatırım Ve Geliştirme Fırsatları</h3>
+          <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
+            
+            {/* TIK BAŞINA */}
+            <div className="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
+              <div>
+                <p className="text-xs font-black uppercase text-slate-200">Üretim Gücü</p>
+                <p className="text-[10px] text-slate-500">Tık Başına Üretim (LVL {clickLvl})</p>
+              </div>
+              <button 
+                onClick={() => buyUpgrade('click')}
+                disabled={money < costs.click}
+                className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-amber-400 text-xs font-bold py-2 px-3 rounded border border-slate-700 transition"
+              >
+                ${costs.click}
+              </button>
+            </div>
+
+            {/* OTOMATİK İŞÇİ */}
+            <div className="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
+              <div>
+                <p className="text-xs font-black uppercase text-slate-200">Otomasyon Hattı</p>
+                <p className="text-[10px] text-slate-500">Otomatik İşçi (LVL {workerLvl})</p>
+              </div>
+              <button 
+                onClick={() => buyUpgrade('worker')}
+                disabled={money < costs.worker}
+                className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-amber-400 text-xs font-bold py-2 px-3 rounded border border-slate-700 transition"
+              >
+                ${costs.worker}
+              </button>
+            </div>
+
+            {/* YÜK KAMYONU */}
+            <div className="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
+              <div>
+                <p className="text-xs font-black uppercase text-slate-200">Lojistik Operasyonu</p>
+                <p className="text-[10px] text-slate-500">🚚 Yük Kamyonu (LVL {truckLvl})</p>
+              </div>
+              <button 
+                onClick={() => buyUpgrade('truck')}
+                disabled={money < costs.truck}
+                className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-amber-400 text-xs font-bold py-2 px-3 rounded border border-slate-700 transition"
+              >
+                ${costs.truck}
+              </button>
+            </div>
+
+            {/* PAZARLAMA STRATEJİSİ */}
+            <div className="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
+              <div>
+                <p className="text-xs font-black uppercase text-slate-200">Pazarlama Stratejisi</p>
+                <p className="text-[10px] text-slate-500">Reklam Kampanyası (LVL {marketingLvl})</p>
+              </div>
+              <button 
+                onClick={() => buyUpgrade('marketing')}
+                disabled={money < costs.marketing}
+                className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-amber-400 text-xs font-bold py-2 px-3 rounded border border-slate-700 transition"
+              >
+                ${costs.marketing}
+              </button>
+            </div>
+
+            {/* DEPOLAMA */}
+            <div className="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
+              <div>
+                <p className="text-xs font-black uppercase text-slate-200">Depolama Altyapısı</p>
+                <p className="text-[10px] text-slate-500">Maksimum Hacim (LVL {storageLvl})</p>
+              </div>
+              <button 
+                onClick={() => buyUpgrade('storage')}
+                disabled={money < costs.storage}
+                className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-amber-400 text-xs font-bold py-2 px-3 rounded border border-slate-700 transition"
+              >
+                ${costs.storage}
+              </button>
+            </div>
+
           </div>
-          <div style={{ fontSize: '0.7rem', color: '#94a3b8', textAlign: 'center', marginBottom: '5px' }}>(Zar 1-3: Batış | Zar 4-6: 2X Kazanç)</div>
-          {gambleResult && <div style={{ textAlign: 'center', fontSize: '0.85rem', fontWeight: 'bold', marginTop: '8px' }}>{gambleResult}</div>}
-        </div>
-      </div>
+        </section>
 
-      <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-        <button 
-          onClick={() => { if(!isStrikeActive && currentInventory < (lvlStorageCapacity * 40)) { const fMultiplier = frenzyTimer > 0 ? 5 : 1; setCurrentInventory(prev => Math.min(prev + (lvlManualProduction * fMultiplier), lvlStorageCapacity * 40)); playSfx('click'); } }}
-          style={{ 
-            padding: '35px 100px', fontSize: '1.8rem', fontWeight: 'bold', borderRadius: '25px', border: 'none',
-            backgroundColor: (isStrikeActive || currentInventory >= lvlStorageCapacity * 40) ? '#334155' : '#3b82f6',
-            color: 'white', cursor: 'pointer', boxShadow: '0 10px 0 #1d4ed8'
-          }}
-        >
-          {isStrikeActive ? "GREV VAR: ÜRETİM DURDU" : currentInventory >= (lvlStorageCapacity * 40) ? "DEPO DOLU" : frenzyTimer > 0 ? "🔥 ÇILGIN MANUEL ÜRETİM (X5) 🔥" : "MANUEL ÜRETİM YAP"}
-        </button>
-      </div>
+        {/* SAĞ: YERALTI KUMAR RISK ODASI */}
+        <section className="bg-purple-950/20 p-4 rounded-xl border-2 border-purple-500/30 flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-xs font-black text-purple-400 tracking-wider uppercase flex items-center gap-1">
+                🎰 Yeraltı Risk Odası
+              </h3>
+              <button 
+                onClick={() => { setTutorialStep(1); setShowTutorial(true); }}
+                className="text-[10px] font-bold text-purple-300 underline hover:text-purple-200"
+              >
+                Kuralları Gör
+              </button>
+            </div>
 
-      <h3 style={{ marginBottom: '25px', color: '#3b82f6', borderLeft: '4px solid #3b82f6', paddingLeft: '15px' }}>YATIRIM VE GELİŞTİRME FIRSATLARI</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '25px' }}>
-        <div onClick={upgradeManualPower} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '1px solid #1e293b' }}>
-          <div>TIK BAŞINA ÜRETİM (LVL {lvlManualProduction})</div>
-          <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${costManual}</div>
-        </div>
-        <div onClick={hireAutomatedWorker} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '1px solid #1e293b' }}>
-          <div>OTOMATİK İŞÇİ (LVL {lvlAutomatedWorkers})</div>
-          <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${costAutomation}</div>
-        </div>
-        <div onClick={purchaseLogisticsTruck} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '2px solid #fbbf24' }}>
-          <div>🚚 YÜK KAMYONU (LVL {lvlLogisticsTrucks})</div>
-          <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${costLogistics}</div>
-        </div>
-        <div onClick={expandMarketingDepth} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '1px solid #1e293b' }}>
-          <div>REKLAM KAMPANYASI (LVL {lvlMarketingCampaigns})</div>
-          <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${costMarketing}</div>
-        </div>
-        <div onClick={expandWarehouseSpace} style={{ background: '#0f172a', padding: '25px', borderRadius: '20px', cursor: 'pointer', border: '1px solid #1e293b' }}>
-          <div>MAKSİMUM HACİM (LVL {lvlStorageCapacity})</div>
-          <div style={{ color: '#22c55e', fontWeight: 'bold' }}>MALİYET: ${costStorage}</div>
-        </div>
-      </div>
+            <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+              Zar atarak paranı katla. <span className="text-rose-400 font-semibold">1-3 arası zar batırır</span>, <span className="text-emerald-400 font-semibold">4-6 arası zar girdiğin parayı 2x yapar!</span>
+            </p>
 
-      <div style={{ position: 'fixed', bottom: '25px', right: '25px', background: 'rgba(15, 23, 42, 0.95)', border: '2px solid #22c55e', padding: '15px 20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 9999 }}>
-        <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold' }}>📍 AKTİF: SLOT {selectedSlot}</span>
-        <button onClick={saveGame} style={{ padding: '10px 25px', background: '#22c55e', color: '#020617', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>💾 OYUNU KAYDET (SAVE)</button>
-      </div>
+            <div className="bg-slate-950 p-3 rounded border border-purple-500/20 mb-4">
+              <label className="text-[10px] font-bold text-purple-400 block uppercase mb-1">Zar Bahis Miktarı ($)</label>
+              <input 
+                type="number" 
+                value={gambleAmount}
+                onChange={(e) => setGambleAmount(e.target.value)}
+                placeholder="Örn: 500"
+                className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1.5 text-sm font-mono text-purple-300 focus:outline-none focus:border-purple-500"
+              />
+            </div>
 
-      <style>{`
-        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-15px); } }
-        @keyframes pulse { 0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.9; } }
-      `}</style>
+            {/* SONUÇ EKRANI */}
+            {diceResult !== null && (
+              <div className={`p-3 rounded border text-center mb-4 transition-all ${isGambleSuccess ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}`}>
+                <div className="text-2xl font-black mb-1">🎲 {diceResult}</div>
+                <p className="text-[11px] font-medium leading-tight">{gambleMessage}</p>
+              </div>
+            )}
+          </div>
+
+          <button 
+            onClick={handleRollDice}
+            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black py-3.5 rounded-lg text-xs uppercase tracking-wider shadow-lg shadow-purple-500/10 active:scale-[0.98] transition"
+          >
+            Şansını Dene (Zar At)
+          </button>
+        </section>
+
+      </main>
+
+      {/* ALT PANEL: KAYIT VE SÜRÜM */}
+      <footer className="border-t border-slate-800 pt-4 mt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">📍 Aktif Kanal:</span>
+          <div className="flex gap-1">
+            {slots.map(slot => (
+              <button
+                key={slot.id}
+                onClick={() => saveGame(slot.id)}
+                className={`text-[10px] font-bold px-2.5 py-1 rounded border flex items-center gap-1 transition ${activeSlot === slot.id ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800'}`}
+              >
+                <Save className="w-3 h-3" /> {slot.label} {slot.savedAt && `(${slot.savedAt.split(' ')[0]})`}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="text-[10px] font-bold font-mono text-slate-600 flex items-center gap-2">
+          <span>NECMİ'NİN YÜKSELİŞİ v7.1.0</span>
+          <span>|</span>
+          <span>Kriz Döngüsü: {crisisTimer}s</span>
+        </div>
+      </footer>
+
     </div>
   );
 }
