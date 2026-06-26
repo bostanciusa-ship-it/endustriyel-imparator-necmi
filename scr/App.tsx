@@ -1,8 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  TrendingUp, TrendingDown, Package, Truck, Target, 
-  Wallet, ChevronUp, RefreshCw, AlertTriangle, Play, CheckCircle, HelpCircle, Save, LineChart, Star, Trophy
-} from 'lucide-react';
 
 interface SaveSlot {
   id: number;
@@ -85,20 +81,17 @@ export default function App() {
     storage: 650 * storageLvl,
   };
 
-  // --- OYUN DÖNGÜLERİ (EFFECTS) ---
+  // --- OYUN DÖNGÜLERİ ---
   useEffect(() => {
-    if (isGameOver) return; // Oyun bittiyse döngüleri durdur
+    if (isGameOver) return;
 
     const interval = setInterval(() => {
-      // 1. Otomatik İşçi Üretimi
       if (workerLvl > 0) {
         setStock(prev => Math.min(maxStock, prev + (workerLvl * 0.2)));
       }
 
-      // 2. Kamyon Sevkiyat Sayacı
       setDeliveryTimer(prev => {
         if (prev <= 1) {
-          // Satış Gerçekleşiyor
           setStock(currentStock => {
             const soldAmount = currentStock;
             const revenue = soldAmount * stockPrice * (1 + (marketingLvl * 0.05)) * goldTruckMultiplier;
@@ -110,7 +103,6 @@ export default function App() {
         return prev - 1;
       });
 
-      // 3. Kriz Döngüsü Sayacı
       setCrisisTimer(prev => {
         if (prev <= 1) {
           setStockPrice(p => {
@@ -125,7 +117,6 @@ export default function App() {
         return prev - 1;
       });
 
-      // 4. Şans Sayacı & Borsa Dalgalanması
       setLuckyTimer(prev => {
         if (prev <= 1) {
           setStockPrice(p => {
@@ -136,7 +127,6 @@ export default function App() {
             return newPrice;
           });
 
-          // %25 İhtimalle Altın Tır Çıkma Şansı
           if (!goldTruckActive && Math.random() < 0.25) {
             setGoldTruckActive(true);
             setGoldTruckMultiplier(5);
@@ -148,7 +138,6 @@ export default function App() {
         return prev - 1;
       });
 
-      // 5. Altın Tır Geri Sayımı
       setGoldTruckTimer(prev => {
         if (prev <= 1) {
           setGoldTruckActive(false);
@@ -163,7 +152,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, [workerLvl, maxStock, stockPrice, marketingLvl, truckLvl, goldTruckMultiplier, goldTruckActive, isGameOver]);
 
-  // --- AKSİYONLAR ---
   const handleManualProduction = () => {
     setStock(prev => Math.min(maxStock, prev + clickLvl));
   };
@@ -229,7 +217,7 @@ export default function App() {
     setReviews([newReview, ...reviews]);
     setReviewName('');
     setReviewComment('');
-    alert('Değerlendirmen başarıyla lojistik paneline eklendi!');
+    alert('Değerlendirmen panelle birleşti!');
   };
 
   const saveGame = (slotId: number) => {
@@ -245,17 +233,13 @@ export default function App() {
     return '🏚️ GECEKONDU LOJİSTİK ÜSSÜ';
   };
 
-  // --- OUTRO (OYUN BİTTİ EKRANI) ---
   if (isGameOver) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-6 flex flex-col items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.15)_0%,transparent_70%)] animate-pulse" />
         
         <div className="max-w-2xl w-full bg-slate-900 border-2 border-amber-500 rounded-2xl p-8 shadow-2xl shadow-amber-500/20 text-center relative z-10 space-y-6">
-          <div className="flex justify-center">
-            <Trophy className="w-20 h-20 text-amber-500 animate-bounce" />
-          </div>
-          
+          <div className="text-6xl animate-bounce">🏆</div>
           <h1 className="text-3xl md:text-4xl font-black text-amber-500 tracking-widest uppercase">
             İNTİKAM ALINDI: BAFRA BASILDI!
           </h1>
@@ -268,7 +252,7 @@ export default function App() {
           </p>
 
           <div className="border-t border-slate-800 pt-6">
-            <h3 className="text-lg font-bold text-indigo-400 mb-2">🏆 Oyunu Puanla & Adını Yazdır</h3>
+            <h3 className="text-lg font-bold text-indigo-400 mb-2">⭐ Oyunu Puanla & Adını Yazdır</h3>
             <form onSubmit={handleAddReview} className="space-y-3 text-left max-w-md mx-auto">
               <div>
                 <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">İsim (3-16 Harf)</label>
@@ -290,9 +274,9 @@ export default function App() {
                       type="button"
                       key={num}
                       onClick={() => setReviewRating(num)}
-                      className={`p-1.5 rounded transition ${reviewRating >= num ? 'text-amber-400' : 'text-slate-600'}`}
+                      className={`text-xl transition ${reviewRating >= num ? 'text-amber-400' : 'text-slate-600'}`}
                     >
-                      <Star className="w-5 h-5 fill-current" />
+                      ★
                     </button>
                   ))}
                 </div>
@@ -311,31 +295,25 @@ export default function App() {
                 type="submit"
                 className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded text-xs uppercase tracking-wider transition"
               >
-                Puanı ve Yorumu Gönder
+                Puanı Gönder
               </button>
             </form>
           </div>
 
-          {/* SONDURUMDAKİ YORUMLAR LİSTESİ */}
           <div className="max-h-40 overflow-y-auto space-y-2 text-left pt-4 border-t border-slate-800">
             {reviews.map((rev, i) => (
               <div key={i} className="bg-slate-950 p-2.5 rounded border border-slate-800 text-xs">
                 <div className="flex justify-between font-bold text-indigo-400 font-mono text-[11px]">
                   <span>{rev.username}</span>
-                  <span className="flex items-center gap-0.5 text-amber-400">
-                    {rev.rating} <Star className="w-3 h-3 fill-current" />
-                  </span>
+                  <span className="text-amber-400">{rev.rating} ★</span>
                 </div>
                 <p className="text-slate-400 mt-1 text-[11px] leading-tight">{rev.comment}</p>
               </div>
             ))}
           </div>
 
-          <button 
-            onClick={() => window.location.reload()}
-            className="text-xs text-slate-500 hover:text-slate-300 transition underline pt-4 block mx-auto"
-          >
-            İmparatorluğu Yeniden Kur (Yeniden Başlat)
+          <button onClick={() => window.location.reload()} className="text-xs text-slate-500 hover:text-slate-300 transition underline pt-4 block mx-auto">
+            İmparatorluğu Yeniden Kur
           </button>
         </div>
       </div>
@@ -345,61 +323,29 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 flex flex-col justify-between selection:bg-amber-500 selection:text-slate-950">
       
-      {/* ÖĞRETİCİ MODAL */}
       {showTutorial && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border-2 border-purple-500 rounded-xl p-6 max-w-md w-full shadow-2xl shadow-purple-500/20">
-            <div className="flex items-center gap-3 text-purple-400 mb-4">
-              <HelpCircle className="w-8 h-8 animate-pulse" />
-              <h2 className="text-xl font-black uppercase tracking-wider">Yeraltı Kumar Rehberi</h2>
-            </div>
-            {tutorialStep === 1 && (
+            <h2 className="text-xl font-black uppercase tracking-wider text-purple-400 mb-4">🎰 Yeraltı Kumar Rehberi</h2>
+            {tutorialStep === 1 ? (
               <div>
-                <p className="text-slate-300 text-sm leading-relaxed mb-4">
-                  Necmi'nin yeraltı odasında zarlar tamamen şansa dayalı döner reis. Kurallar basittir:
-                </p>
+                <p className="text-slate-300 text-sm leading-relaxed mb-4">Zarlar tamamen şansa dayalı döner reis. Kurallar basittir:</p>
                 <ul className="space-y-2 text-xs text-slate-400 mb-6 bg-slate-950 p-3 rounded border border-slate-800">
-                  <li className="flex items-center gap-2 text-rose-400">❌ <strong className="text-rose-300">1, 2 veya 3 Gelirse:</strong> Koyduğun tüm parayı çete üter, batarsın!</li>
-                  <li className="flex items-center gap-2 text-emerald-400">💰 <strong className="text-emerald-300">4, 5 veya 6 Gelirse:</strong> Koyduğun parayı tam 2'ye katlar, kasayı uçurursun!</li>
+                  <li className="text-rose-400">❌ <strong>1, 2 veya 3 Gelirse:</strong> Parayı çete alır, batarsın!</li>
+                  <li className="text-emerald-400">💰 <strong>4, 5 veya 6 Gelirse:</strong> Parayı 2'ye katlarsın!</li>
                 </ul>
-                <button 
-                  onClick={() => setTutorialStep(2)}
-                  className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-all"
-                >
-                  Riskleri Anladım, İlerle →
-                </button>
+                <button onClick={() => setTutorialStep(2)} className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg transition-all">Riskleri Anladım →</button>
               </div>
-            )}
-            {tutorialStep === 2 && (
+            ) : (
               <div>
-                <p className="text-slate-300 text-sm mb-4">
-                  Yeraltı kumar odasında kaybolan paraların sorumluluğu tamamen Necmi'nin kararlılığına aittir.
-                </p>
+                <p className="text-slate-300 text-sm mb-4">Kumar odasındaki tüm sorumluluk Necmi'ye aittir.</p>
                 <label className="flex items-start gap-3 bg-slate-950 p-3 rounded border border-slate-800 mb-6 cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    checked={acceptRisks} 
-                    onChange={(e) => setAcceptRisks(e.target.checked)}
-                    className="mt-1 accent-purple-500 h-4 w-4"
-                  />
-                  <span className="text-xs text-slate-400 leading-tight">
-                    Kumar odasındaki zar mekaniğinin tamamen şans olduğunu biliyorum, batmayı da katlamayı da kabul ediyorum.
-                  </span>
+                  <input type="checkbox" checked={acceptRisks} onChange={(e) => setAcceptRisks(e.target.checked)} className="mt-1 accent-purple-500 h-4 w-4" />
+                  <span className="text-xs text-slate-400">Kaybetmeyi de katlamayı da kabul ediyorum.</span>
                 </label>
                 <div className="flex gap-2">
-                  <button 
-                    onClick={() => { setShowTutorial(false); setAcceptRisks(true); }}
-                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold py-2 rounded text-xs transition"
-                  >
-                    Öğreticiyi Geç
-                  </button>
-                  <button 
-                    disabled={!acceptRisks}
-                    onClick={() => setShowTutorial(false)}
-                    className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-900 disabled:text-purple-400 text-white font-bold py-2 rounded text-xs transition-all"
-                  >
-                    Kumarı Aktif Et
-                  </button>
+                  <button onClick={() => { setShowTutorial(false); setAcceptRisks(true); }} className="flex-1 bg-slate-800 text-slate-400 font-bold py-2 rounded text-xs">Geç</button>
+                  <button disabled={!acceptRisks} onClick={() => setShowTutorial(false)} className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-900 text-white font-bold py-2 rounded text-xs">Kumarı Aktif Et</button>
                 </div>
               </div>
             )}
@@ -407,116 +353,74 @@ export default function App() {
         </div>
       )}
 
-      {/* ALTIN TIR BİLDİRİM BAR */}
       {goldTruckActive && (
-        <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 text-center py-2 px-4 rounded-md font-black text-xs tracking-widest animate-pulse shadow-lg flex items-center justify-center gap-2 mb-4">
-          <Truck className="w-5 h-5 animate-bounce" /> 
-          ALTIN TIR AKTİF! SEVKİYATLAR KAZANCI 5'E KATLIYOR! ({goldTruckTimer}sn)
+        <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 text-center py-2 px-4 rounded-md font-black text-xs tracking-widest animate-pulse shadow-lg mb-4">
+          🚚 ALTIN TIR AKTİF! KAZANÇ 5'E KATLIYOR! ({goldTruckTimer}sn)
         </div>
       )}
 
-      {/* ÜST PANEL */}
       <header className="border-b border-slate-800 pb-4 mb-4">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-xl font-black text-amber-500 tracking-wider">NECMİ'NİN GLOBAL LOJİSTİK ÜSSÜ</h1>
-            <p className="text-xs font-bold text-indigo-400 tracking-wide mt-0.5">{getCompanyStatus()}</p>
+            <p className="text-xs font-bold text-indigo-400 mt-0.5">{getCompanyStatus()}</p>
           </div>
           <div className="text-right">
-            <span className="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-400 font-mono border border-slate-800">
-              ⏱️ Şans Sayacı: {luckyTimer}sn
-            </span>
+            <span className="text-[10px] bg-slate-900 px-2 py-1 rounded text-slate-400 border border-slate-800">⏱️ Şans: {luckyTimer}sn</span>
           </div>
         </div>
 
-        {/* HEDEF PROGRESS BAR */}
         <div className="mt-4 bg-slate-900 p-3 rounded-lg border border-slate-800">
           <div className="flex justify-between items-center mb-1.5 text-xs font-bold">
-            <span className="text-slate-400 flex items-center gap-1">
-              <Target className="w-4 h-4 text-rose-500" /> TARGET: Ahmet'in Binasını Basmak
-            </span>
-            <span className="text-rose-400 font-mono">Kalan: ${moneyToTarget.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            <span className="text-slate-400">🎯 TARGET: Ahmet'in Binasını Basmak</span>
+            <span className="text-rose-400 font-mono">Kalan: ${moneyToTarget.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
           </div>
           <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800">
-            <div 
-              className="bg-gradient-to-r from-rose-600 to-amber-500 h-full rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(100, (money / targetMoney) * 100)}%` }}
-            />
+            <div className="bg-gradient-to-r from-rose-600 to-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (money / targetMoney) * 100)}%` }} />
           </div>
         </div>
       </header>
 
-      {/* ANA EKONOMİ PANELİ */}
       <main className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
         
-        {/* SOL: FİNANS & YERALTI KUMAR ODASI */}
         <section className="flex flex-col gap-4">
           <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col justify-between flex-1">
             <div>
               <div className="mb-4">
-                <p className="text-xs font-bold text-slate-400 flex items-center gap-1 uppercase tracking-wider mb-1">
-                  <Wallet className="w-3.5 h-3.5 text-emerald-400" /> Necmi'nin Kasası
-                </p>
-                <h2 className="text-3xl font-black text-emerald-400 font-mono">
-                  ${money.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </h2>
+                <p className="text-xs font-bold text-slate-400 mb-1">💵 Necmi'nin Kasası</p>
+                <h2 className="text-3xl font-black text-emerald-400 font-mono">${money.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h2>
               </div>
 
               <div className="grid grid-cols-2 gap-2 mb-4">
                 <div className="bg-slate-950 p-2.5 rounded border border-slate-800">
-                  <span className="text-[10px] block font-bold text-slate-500 uppercase">Borsa Değeri</span>
-                  <span className={`text-base font-black font-mono flex items-center gap-1 mt-0.5 ${priceTrend === 'up' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                    ${stockPrice} {priceTrend === 'up' ? <ChevronUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                  <span className="text-[10px] block font-bold text-slate-500">Borsa Değeri</span>
+                  <span className={`text-base font-black font-mono mt-0.5 block ${priceTrend === 'up' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    ${stockPrice} {priceTrend === 'up' ? '▲' : '▼'}
                   </span>
                 </div>
                 <div className="bg-slate-950 p-2.5 rounded border border-slate-800">
-                  <span className="text-[10px] block font-bold text-slate-500 uppercase">Stok Durumu</span>
-                  <span className="text-base font-black text-blue-400 font-mono block mt-0.5">
-                    {stock.toFixed(1)} / {maxStock}
-                  </span>
+                  <span className="text-[10px] block font-bold text-slate-500">Stok Durumu</span>
+                  <span className="text-base font-black text-blue-400 font-mono block mt-0.5">{stock.toFixed(1)} / {maxStock}</span>
                 </div>
               </div>
 
               <div className="bg-slate-950 p-3 rounded border border-slate-800 flex items-center justify-between text-xs font-semibold">
-                <span className="text-slate-400 flex items-center gap-1.5">
-                  <Truck className="w-4 h-4 text-blue-500 animate-pulse" /> Sevkiyata Kalan Süre:
-                </span>
-                <span className="font-mono text-blue-400 text-sm bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                  {deliveryTimer}sn
-                </span>
+                <span className="text-slate-400">🚚 Sevkiyat Süresi:</span>
+                <span className="font-mono text-blue-400 text-sm bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">{deliveryTimer}sn</span>
               </div>
             </div>
 
-            <button 
-              onClick={handleManualProduction}
-              className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-4 rounded-xl shadow-lg shadow-amber-500/10 transition-all duration-150 uppercase tracking-wider text-sm mt-4 active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              <Package className="w-5 h-5" /> Manuel Üretim Yap
+            <button onClick={handleManualProduction} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-4 rounded-xl shadow-lg transition-all uppercase tracking-wider text-sm mt-4">
+              📦 Manuel Üretim Yap
             </button>
           </div>
 
-          {/* KÜÇÜLTÜLMÜŞ SOL ALT KUMAR ODASI */}
           <div className="bg-purple-950/20 p-3 rounded-xl border-2 border-purple-500/30 flex flex-col justify-between">
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <h3 className="text-[11px] font-black text-purple-400 tracking-wider uppercase flex items-center gap-1">
-                  🎰 Yeraltı Risk Odası
-                </h3>
-              </div>
+              <h3 className="text-[11px] font-black text-purple-400 tracking-wider uppercase mb-1">🎰 Yeraltı Risk Odası</h3>
               <div className="flex gap-2 items-center mb-2">
-                <input 
-                  type="number" 
-                  value={gambleAmount}
-                  onChange={(e) => setGambleAmount(e.target.value)}
-                  placeholder="Miktar"
-                  className="w-1/2 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs font-mono text-purple-300 focus:outline-none focus:border-purple-500"
-                />
-                <button 
-                  onClick={handleRollDice}
-                  className="w-1/2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black py-1 rounded text-[10px] uppercase tracking-wider transition"
-                >
-                  Zar At
-                </button>
+                <input type="number" value={gambleAmount} onChange={(e) => setGambleAmount(e.target.value)} placeholder="Miktar" className="w-1/2 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs font-mono text-purple-300 focus:outline-none" />
+                <button onClick={handleRollDice} className="w-1/2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black py-1 rounded text-[10px] uppercase">Zar At</button>
               </div>
               {diceResult !== null && (
                 <div className={`p-1.5 rounded border text-center text-[10px] ${isGambleSuccess ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}`}>
@@ -527,90 +431,33 @@ export default function App() {
           </div>
         </section>
 
-        {/* ORTA: YATIRIMLAR & GELİŞTİRMELER */}
         <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
           <h3 className="text-xs font-black text-slate-400 tracking-wider uppercase mb-3">Yatırım Ve Geliştirme Fırsatları</h3>
           <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-            <div className="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
-              <div>
-                <p className="text-xs font-black uppercase text-slate-200">Üretim Gücü</p>
-                <p className="text-[10px] text-slate-500">Tık Başına Üretim (LVL {clickLvl})</p>
+            {[
+              { id: 'click', title: 'Üretim Gücü', desc: `Tık Başına Üretim (LVL ${clickLvl})`, cost: costs.click },
+              { id: 'worker', title: 'Otomasyon Hattı', desc: `Otomatik İşçi (LVL ${workerLvl})`, cost: costs.worker },
+              { id: 'truck', title: 'Lojistik Operasyonu', desc: `🚚 Yük Kamyonu (LVL ${truckLvl})`, cost: costs.truck },
+              { id: 'marketing', title: 'Pazarlama Stratejisi', desc: `Reklam Kampanyası (LVL ${marketingLvl})`, cost: costs.marketing },
+              { id: 'storage', title: 'Depolama Altyapısı', desc: `Maksimum Hacim (LVL ${storageLvl})`, cost: costs.storage }
+            ].map((up) => (
+              <div key={up.id} className="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
+                <div>
+                  <p className="text-xs font-black uppercase text-slate-200">{up.title}</p>
+                  <p className="text-[10px] text-slate-500">{up.desc}</p>
+                </div>
+                <button onClick={() => buyUpgrade(up.id as any)} disabled={money < up.cost} className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-amber-400 text-xs font-bold py-2 px-3 rounded border border-slate-700 transition">
+                  ${up.cost}
+                </button>
               </div>
-              <button 
-                onClick={() => buyUpgrade('click')}
-                disabled={money < costs.click}
-                className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-amber-400 text-xs font-bold py-2 px-3 rounded border border-slate-700 transition"
-              >
-                ${costs.click}
-              </button>
-            </div>
-
-            <div className="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
-              <div>
-                <p className="text-xs font-black uppercase text-slate-200">Otomasyon Hattı</p>
-                <p className="text-[10px] text-slate-500">Otomatik İşçi (LVL {workerLvl})</p>
-              </div>
-              <button 
-                onClick={() => buyUpgrade('worker')}
-                disabled={money < costs.worker}
-                className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-amber-400 text-xs font-bold py-2 px-3 rounded border border-slate-700 transition"
-              >
-                ${costs.worker}
-              </button>
-            </div>
-
-            <div className="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
-              <div>
-                <p className="text-xs font-black uppercase text-slate-200">Lojistik Operasyonu</p>
-                <p className="text-[10px] text-slate-500">🚚 Yük Kamyonu (LVL {truckLvl})</p>
-              </div>
-              <button 
-                onClick={() => buyUpgrade('truck')}
-                disabled={money < costs.truck}
-                className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-amber-400 text-xs font-bold py-2 px-3 rounded border border-slate-700 transition"
-              >
-                ${costs.truck}
-              </button>
-            </div>
-
-            <div className="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
-              <div>
-                <p className="text-xs font-black uppercase text-slate-200">Pazarlama Stratejisi</p>
-                <p className="text-[10px] text-slate-500">Reklam Kampanyası (LVL {marketingLvl})</p>
-              </div>
-              <button 
-                onClick={() => buyUpgrade('marketing')}
-                disabled={money < costs.marketing}
-                className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-amber-400 text-xs font-bold py-2 px-3 rounded border border-slate-700 transition"
-              >
-                ${costs.marketing}
-              </button>
-            </div>
-
-            <div className="bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center">
-              <div>
-                <p className="text-xs font-black uppercase text-slate-200">Depolama Altyapısı</p>
-                <p className="text-[10px] text-slate-500">Maksimum Hacim (LVL {storageLvl})</p>
-              </div>
-              <button 
-                onClick={() => buyUpgrade('storage')}
-                disabled={money < costs.storage}
-                className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-amber-400 text-xs font-bold py-2 px-3 rounded border border-slate-700 transition"
-              >
-                ${costs.storage}
-              </button>
-            </div>
+            ))}
           </div>
         </section>
 
-        {/* SAĞ PANEL: CANLI BORSA GRAFİĞİ & YORUMLAR (ALT KISIMDA) */}
         <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 flex flex-col justify-between gap-4">
           <div>
-            <h3 className="text-xs font-black text-emerald-400 tracking-wider uppercase flex items-center gap-1 mb-2">
-              <LineChart className="w-4 h-4" /> 📈 Canlı Borsa Grafiği
-            </h3>
+            <h3 className="text-xs font-black text-emerald-400 tracking-wider uppercase mb-2">📈 Canlı Borsa Grafiği</h3>
             
-            {/* GRAFİK ÇİZGİ TASARIMI */}
             <div className="h-28 bg-slate-950 rounded-lg border border-slate-800 p-2 flex items-end justify-between gap-1 relative overflow-hidden mb-3">
               <div className="absolute top-1 left-2 text-[8px] text-slate-600 font-mono">MAX: $30</div>
               <div className="absolute bottom-1 left-2 text-[8px] text-slate-600 font-mono">MIN: $5</div>
@@ -618,60 +465,34 @@ export default function App() {
               {priceHistory.map((price, idx) => {
                 const heightPercent = Math.min(100, Math.max(10, ((price - 5) / 25) * 100));
                 return (
-                  <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end group">
-                    <div 
-                      style={{ height: `${heightPercent}%` }}
-                      className={`w-full rounded-t transition-all duration-500 ${priceTrend === 'up' ? 'bg-gradient-to-t from-emerald-950 to-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.2)]' : 'bg-gradient-to-t from-rose-950 to-rose-500 shadow-[0_0_6px_rgba(239,68,68,0.2)]'}`}
-                    />
+                  <div key={idx} className="flex-1 flex flex-col items-center h-full justify-end">
+                    <div style={{ height: `${heightPercent}%` }} className={`w-full rounded-t transition-all duration-500 ${priceTrend === 'up' ? 'bg-gradient-to-t from-emerald-950 to-emerald-500' : 'bg-gradient-to-t from-rose-950 to-rose-500'}`} />
                   </div>
                 );
               })}
             </div>
 
-            {/* OYUN İÇİ CANLI DEĞERLENDİRME PANELİ */}
             <div className="border-t border-slate-800 pt-2">
-              <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-wider mb-2">⭐ Oyuncu Yorumları Panelde</h4>
+              <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-wider mb-2">⭐ Oyuncu Yorumları</h4>
               <form onSubmit={handleAddReview} className="space-y-2 mb-2">
                 <div className="flex gap-1.5">
-                  <input 
-                    type="text"
-                    maxLength={16}
-                    value={reviewName}
-                    onChange={(e) => setReviewName(e.target.value)}
-                    placeholder="İsim (3-16)"
-                    className="w-2/3 bg-slate-950 border border-slate-800 rounded p-1 text-[10px] text-slate-200 focus:outline-none focus:border-amber-500"
-                    required
-                  />
-                  <select 
-                    value={reviewRating} 
-                    onChange={(e) => setReviewRating(Number(e.target.value))}
-                    className="w-1/3 bg-slate-950 border border-slate-800 rounded p-1 text-[10px] text-amber-400 focus:outline-none"
-                  >
-                    <option value="5">5 ⭐</option>
-                    <option value="4">4 ⭐</option>
-                    <option value="3">3 ⭐</option>
-                    <option value="2">2 ⭐</option>
-                    <option value="1">1 ⭐</option>
+                  <input type="text" maxLength={16} value={reviewName} onChange={(e) => setReviewName(e.target.value)} placeholder="İsim (3-16)" className="w-2/3 bg-slate-950 border border-slate-800 rounded p-1 text-[10px] text-slate-200 focus:outline-none" required />
+                  <select value={reviewRating} onChange={(e) => setReviewRating(Number(e.target.value))} className="w-1/3 bg-slate-950 border border-slate-800 rounded p-1 text-[10px] text-amber-400">
+                    <option value="5">5 ★</option>
+                    <option value="4">4 ★</option>
+                    <option value="3">3 ★</option>
+                    <option value="2">2 ★</option>
+                    <option value="1">1 ★</option>
                   </select>
                 </div>
-                <input 
-                  type="text"
-                  maxLength={500}
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  placeholder="Yorum yaz reis (Maks 500 harf)..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded p-1 text-[10px] text-slate-200 focus:outline-none focus:border-amber-500"
-                />
-                <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-1 rounded text-[9px] uppercase tracking-wider">
-                  Yorumu Gönder
-                </button>
+                <input type="text" maxLength={500} value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} placeholder="Yorum yaz reis (Maks 500 harf)..." className="w-full bg-slate-950 border border-slate-800 rounded p-1 text-[10px] text-slate-200 focus:outline-none" />
+                <button type="submit" className="w-full bg-indigo-600 text-white font-black py-1 rounded text-[9px] uppercase">Yorumu Gönder</button>
               </form>
 
-              {/* LİSTELEME */}
               <div className="max-h-20 overflow-y-auto space-y-1">
                 {reviews.map((rev, i) => (
                   <div key={i} className="bg-slate-950 p-1.5 rounded border border-slate-800 text-[9px] leading-tight">
-                    <span className="font-bold text-amber-400">{rev.username} ({rev.rating}⭐):</span> <span className="text-slate-400">{rev.comment}</span>
+                    <span className="font-bold text-amber-400">{rev.username} ({rev.rating}★):</span> <span className="text-slate-400">{rev.comment}</span>
                   </div>
                 ))}
               </div>
@@ -682,24 +503,19 @@ export default function App() {
 
       </main>
 
-      {/* ALT PANEL */}
       <footer className="border-t border-slate-800 pt-4 mt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">📍 Aktif Kanal:</span>
+          <span className="text-[10px] font-bold text-slate-500 uppercase">📍 Aktif Kanal:</span>
           <div className="flex gap-1">
             {slots.map(slot => (
-              <button
-                key={slot.id}
-                onClick={() => saveGame(slot.id)}
-                className={`text-[10px] font-bold px-2.5 py-1 rounded border flex items-center gap-1 transition ${activeSlot === slot.id ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800'}`}
-              >
-                <Save className="w-3 h-3" /> {slot.label} {slot.savedAt && `(${slot.savedAt.split(' ')[0]})`}
+              <button key={slot.id} onClick={() => saveGame(slot.id)} className={`text-[10px] font-bold px-2.5 py-1 rounded border transition ${activeSlot === slot.id ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-900 text-slate-400 border-slate-800'}`}>
+                💾 {slot.label} {slot.savedAt && `(${slot.savedAt.split(' ')[0]})`}
               </button>
             ))}
           </div>
         </div>
         <div className="text-[10px] font-bold font-mono text-slate-600 flex items-center gap-2">
-          <span>NECMİ'NİN YÜKSELİŞİ v7.3.0</span>
+          <span>NECMİ'NİN YÜKSELİŞİ v7.3.1</span>
           <span>|</span>
           <span>Kriz Döngüsü: {crisisTimer}s</span>
         </div>
