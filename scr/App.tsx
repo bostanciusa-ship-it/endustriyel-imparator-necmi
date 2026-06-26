@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 // ==========================================
-// ⚠️ SUPABASE VERİTABANI BAĞLANTISI (BURAYI DOLDUR REIS)
+// ⚠️ SUPABASE VERİBATANI BAĞLANTISI (URL HAZIR, ANON KEY'İNİ YAPISTIR REIS)
 // ==========================================
 const SUPABASE_URL = "https://auhtuedjfkvicwhrfpmm.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1aHR1ZWRqZmt2aWN3cmZwbW0iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcxOT...";
@@ -20,6 +20,9 @@ interface Review {
 }
 
 export default function App() {
+  // --- EKRAN KONTROL STATE'LERİ (INTRO / OUTRO) ---
+  const [showIntro, setShowIntro] = useState<boolean>(true);
+
   // --- TEMEL EKONOMİ STATE'LERİ ---
   const [money, setMoney] = useState<number>(295);
   const [stock, setStock] = useState<number>(7.5);
@@ -59,9 +62,7 @@ export default function App() {
   const [reviewName, setReviewName] = useState<string>('');
   const [reviewRating, setReviewRating] = useState<number>(5);
   const [reviewComment, setReviewComment] = useState<string>('');
-  const [reviews, setReviews] = useState<Review[]>([
-    { username: 'Sistem', rating: 5, comment: 'Veritabanı yükleniyor reis...', date: 'Şimdi' }
-  ]);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   // --- KAYIT SLOTLARI ---
   const [slots, setSlots] = useState<SaveSlot[]>([
@@ -92,7 +93,11 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data && data.length > 0) setReviews(data);
+        if (data && data.length > 0) {
+          setReviews(data);
+        } else {
+          setReviews([{ username: 'Sistem', rating: 5, comment: 'Henüz yorum yok reis, ilk yorumu sen patlat!', date: 'Şimdi' }]);
+        }
       }
     } catch (err) { console.error("Yorumlar çekilemedi", err); }
   };
@@ -109,20 +114,21 @@ export default function App() {
         },
         body: JSON.stringify(newReview)
       });
-      fetchReviews(); // Listeyi anında tazele
+      fetchReviews();
     } catch (err) { console.error("Yorum gönderilemedi", err); }
   };
 
-  // İlk girişte canlı yorumları çek ve her 10 saniyede bir arkada güncelle
   useEffect(() => {
-    fetchReviews();
-    const interval = setInterval(fetchReviews, 10000);
-    return () => clearInterval(interval);
+    if (SUPABASE_ANON_KEY !== "BURAYA_AYARLARDAN_KOPYALADIGIN_ANON_KEY_GELECEK") {
+      fetchReviews();
+      const interval = setInterval(fetchReviews, 5000);
+      return () => clearInterval(interval);
+    }
   }, []);
 
   // Oyun Döngüsü
   useEffect(() => {
-    if (isGameOver) return;
+    if (isGameOver || showIntro) return;
     const interval = setInterval(() => {
       if (workerLvl > 0) {
         setStock(prev => Math.min(maxStock, prev + (workerLvl * 0.2)));
@@ -176,7 +182,7 @@ export default function App() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [workerLvl, maxStock, stockPrice, marketingLvl, truckLvl, goldTruckMultiplier, goldTruckActive, isGameOver]);
+  }, [workerLvl, maxStock, stockPrice, marketingLvl, truckLvl, goldTruckMultiplier, goldTruckActive, isGameOver, showIntro]);
 
   const handleManualProduction = () => setStock(prev => Math.min(maxStock, prev + clickLvl));
 
@@ -208,12 +214,11 @@ export default function App() {
     }
   };
 
-  // YouTube Kurallarına Göre Yorum Ekleme Mantığı (Min 3, Maks 16 Harf Temizliği)
   const handleAddReview = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanName = reviewName.trim();
     if (cleanName.length < 3 || cleanName.length > 16) {
-      alert('YouTube Kuralı: Kullanıcı adın en az 3, en fazla 16 harf olmalı reis!');
+      alert('Kullanıcı adın en az 3, en fazla 16 harf olmalı reis!');
       return;
     }
     if (!reviewComment.trim()) return;
@@ -236,7 +241,6 @@ export default function App() {
     alert(`Oyun SLOT ${slotId} üzerine kaydedildi!`);
   };
 
-  // --- SVG NEON ÇİZGİ GRAFİK HESAPLAMA MOTORU ---
   const generateSvgPath = () => {
     const width = 280;
     const height = 110;
@@ -259,12 +263,62 @@ export default function App() {
     card: { backgroundColor: '#0f172a', padding: '16px', borderRadius: '12px', border: '1px solid #1e293b', flex: '1 1 300px' },
     btnManual: { width: '100%', backgroundColor: '#f59e0b', color: '#020617', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: '900', cursor: 'pointer', fontSize: '14px', marginTop: '12px' } as React.CSSProperties,
     btnUpgrade: { backgroundColor: '#1e293b', color: '#f59e0b', border: '1px solid #334155', padding: '8px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' },
-    input: { backgroundColor: '#020617', border: '1px solid #1e293b', padding: '8px', color: '#fff', borderRadius: '4px', fontSize: '12px' },
     reviewSection: { backgroundColor: '#0f172a', padding: '16px', borderRadius: '12px', border: '1px solid #1e293b', marginTop: '20px' },
     reviewCard: { borderBottom: '1px solid #1e293b', padding: '12px 0' },
     footer: { borderTop: '1px solid #1e293b', paddingTop: '16px', marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#475569' }
   };
 
+  // ==========================================
+  // 🎬 1. INTRO EKRANI (OYUN BAŞI)
+  // ==========================================
+  if (showIntro) {
+    return (
+      <div style={{ backgroundColor: '#020617', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', padding: '20px' }}>
+        <div style={{ backgroundColor: '#0f172a', border: '3px solid #f59e0b', padding: '40px', borderRadius: '16px', maxWidth: '600px', width: '100%', textTransform: 'uppercase', textAlign: 'center', boxShadow: '0 0 30px rgba(245, 158, 11, 0.2)' }}>
+          <h1 style={{ color: '#f59e0b', fontSize: '32px', fontWeight: '900', margin: '0 0 10px 0', letterSpacing: '1px' }}>NECMİ'NİN YÜKSELİŞİ</h1>
+          <h3 style={{ color: '#38bdf8', fontSize: '16px', margin: '0 0 30px 0' }}>v7.4.3 Global Lojistik Operasyonu</h3>
+          
+          <div style={{ backgroundColor: '#020617', padding: '20px', borderRadius: '8px', border: '1px solid #1e293b', textAlign: 'left', fontSize: '14px', color: '#cbd5e1', lineHeight: '1.6', textTransform: 'none', marginBottom: '30px' }}>
+            <p style={{ margin: '0 0 10px 0' }}>📦 <strong>Hikaye:</strong> Necmi sıfırdan, bir gecekondunun deposundan lojistik imparatorluğu kuruyor.</p>
+            <p style={{ margin: '0 0 10px 0' }}>📈 <strong>Borsa ve Risk:</strong> Canlı çizgi grafiği takip et, hisseler tavan yaptığında sevkiyat yap. Sıkışırsan yeraltı odasında kumar oyna.</p>
+            <p style={{ margin: 0 }}>🎯 <strong style={{ color: '#f43f5e' }}>Büyük Hedef:</strong> Tam <strong>1.000.000$</strong> sermayeye ulaşıp Ahmet'in tüm lojistik binalarını basmak ve piyasayı tekeline almak!</p>
+          </div>
+
+          <button onClick={() => setShowIntro(false)} style={{ backgroundColor: '#f59e0b', color: '#020617', border: 'none', padding: '16px 32px', borderRadius: '8px', fontSize: '18px', fontWeight: '900', cursor: 'pointer', transition: '0.2s', width: '100%', letterSpacing: '0.5px' }}>
+            OPERASYONU BAŞLAT Reis →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // 🏆 2. OUTRO EKRANI (OYUN BİTTİ / ZAFER)
+  // ==========================================
+  if (isGameOver) {
+    return (
+      <div style={{ backgroundColor: '#020617', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', padding: '20px' }}>
+        <div style={{ backgroundColor: '#0f172a', border: '4px solid #10b981', padding: '40px', borderRadius: '16px', maxWidth: '600px', width: '100%', textAlign: 'center', boxShadow: '0 0 40px rgba(16, 185, 129, 0.3)' }}>
+          <span style={{ fontSize: '64px' }}>👑</span>
+          <h1 style={{ color: '#10b981', fontSize: '36px', fontWeight: '900', margin: '16px 0 8px 0', textTransform: 'uppercase' }}>BÜYÜK ZAFER!</h1>
+          <h2 style={{ color: '#f59e0b', fontSize: '24px', fontWeight: 'bold', margin: '0 0 24px 0' }}>Kasa: ${money.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h2>
+          
+          <div style={{ backgroundColor: '#020617', padding: '20px', borderRadius: '8px', border: '1px solid #1e293b', fontSize: '15px', color: '#cbd5e1', lineHeight: '1.6', marginBottom: '30px' }}>
+            <p style={{ margin: '0 0 12px 0', fontWeight: 'bold', color: '#38bdf8' }}>AHMET'İN BİNALARI RESMEN BASILDI!</p>
+            <p style={{ margin: 0 }}>Necmi sıfırdan başladığı bu yolda 1 Milyon Dolarlık devasa bir bütçeye ulaştı. Ahmet'in tüm lojistik üsleri ele geçirildi, rakipler piyasadan silindi. Global lojistik pazarının tek hakimi artık İmparator Necmi!</p>
+          </div>
+
+          <button onClick={() => { setMoney(295); setStock(7.5); setClickLvl(1); setWorkerLvl(0); setTruckLvl(0); setMarketingLvl(1); setStorageLvl(1); }} style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '16px 32px', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', width: '100%', textTransform: 'uppercase' }}>
+            İmparatorluğu Yeniden Kur (Sıfırla) 🔄
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // 🎮 3. ANA OYUN PANELİ (ZATEN BURASI AKTİF)
+  // ==========================================
   return (
     <div style={s.body}>
       
@@ -330,7 +384,7 @@ export default function App() {
           <div style={{ backgroundColor: '#1e1b4b', padding: '12px', borderRadius: '12px', border: '2px solid #6366f1' }}>
             <h3 style={{ fontSize: '12px', color: '#818cf8', fontWeight: '900', margin: '0 0 8px 0' }}>🎰 YERALTI RİSK ODASI</h3>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <input type="number" value={gambleAmount} onChange={(e) => setGambleAmount(e.target.value)} style={{ ...s.input, width: '50%' }} />
+              <input type="number" value={gambleAmount} onChange={(e) => setGambleAmount(e.target.value)} style={{ backgroundColor: '#020617', border: '1px solid #1e293b', padding: '8px', color: '#fff', borderRadius: '4px', fontSize: '12px', width: '50%' }} />
               <button onClick={handleRollDice} style={{ width: '50%', backgroundColor: '#4f46e5', color: '#fff', border: 'none', fontWeight: 'bold', borderRadius: '4px', cursor: 'pointer' }}>ZAR AT</button>
             </div>
             {diceResult !== null && (
@@ -372,7 +426,6 @@ export default function App() {
             <span style={{ position: 'absolute', top: '4px', left: '6px', fontSize: '8px', color: '#334155' }}>MAX: $30</span>
             <span style={{ position: 'absolute', bottom: '4px', left: '6px', fontSize: '8px', color: '#334155' }}>MIN: $5</span>
             
-            {/* SVG ÇİZGİSİ */}
             <svg style={{ width: '100%', height: '100%', overflow: 'visible' }}>
               <polyline
                 fill="none"
@@ -384,7 +437,6 @@ export default function App() {
             </svg>
           </div>
           
-          {/* DEĞER ARTIK GRAFİĞİN TAM ALTINDA BÜYÜK PUNTOLARLA */}
           <div style={{ textAlign: 'center', marginTop: '12px', borderTop: '1px solid #1e293b', paddingTop: '8px' }}>
             <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>GÜNCEL HİSSE DEĞERİ</span>
             <span style={{ fontSize: '24px', fontWeight: '900', color: priceTrend === 'up' ? '#10b981' : '#f43f5e' }}>
@@ -403,10 +455,22 @@ export default function App() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
           
           {/* YT YORUM ATMA PANELİ */}
-          <form onSubmit={handleAddReview} style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <form onSubmit={handleAddReview} style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#020617', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <input type="text" maxLength={16} value={reviewName} onChange={(e) => setReviewName(e.target.value)} placeholder="Kullanıcı Adın (3-16 Harf)" style={{ ...s.input, flex: 2 }} required />
-              <select value={reviewRating} onChange={(e) => setReviewRating(Number(e.target.value))} style={{ ...s.input, flex: 1, color: '#f59e0b', fontWeight: 'bold' }}>
+              <input 
+                type="text" 
+                maxLength={16} 
+                value={reviewName} 
+                onChange={(e) => setReviewName(e.target.value)} 
+                placeholder="Kullanıcı Adın (3-16 Harf)" 
+                style={{ backgroundColor: '#0f172a', border: '2px solid #ff0000', padding: '10px', color: '#fff', borderRadius: '6px', fontSize: '13px', flex: 2, outline: 'none' }} 
+                required 
+              />
+              <select 
+                value={reviewRating} 
+                onChange={(e) => setReviewRating(Number(e.target.value))} 
+                style={{ backgroundColor: '#0f172a', border: '2px solid #334155', padding: '10px', color: '#f59e0b', borderRadius: '6px', fontSize: '13px', flex: 1, fontWeight: 'bold', outline: 'none' }}
+              >
                 <option value="5">★★★★★</option>
                 <option value="4">★★★★☆</option>
                 <option value="3">★★★☆☆</option>
@@ -414,12 +478,21 @@ export default function App() {
                 <option value="1">★☆☆☆☆</option>
               </select>
             </div>
-            <textarea maxLength={500} value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} placeholder="YouTube mantığı açık ve net yorumunu buraya bırak reis..." style={{ ...s.input, height: '60px', resize: 'none' }} required />
-            <button type="submit" style={{ backgroundColor: '#ff0000', color: '#fff', border: 'none', padding: '10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>YORUMU CANLI YAYINA GÖNDER</button>
+            <textarea 
+              maxLength={500} 
+              value={reviewComment} 
+              onChange={(e) => setReviewComment(e.target.value)} 
+              placeholder="YouTube mantığı açık ve net yorumunu buraya bırak reis..." 
+              style={{ backgroundColor: '#0f172a', border: '2px solid #334155', padding: '10px', color: '#fff', borderRadius: '6px', fontSize: '13px', height: '70px', resize: 'none', outline: 'none' }} 
+              required 
+            />
+            <button type="submit" style={{ backgroundColor: '#ff0000', color: '#fff', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              YORUMU CANLI YAYINA GÖNDER
+            </button>
           </form>
 
           {/* YT AKAN YORUM AKIŞI */}
-          <div style={{ flex: '1 1 400px', backgroundColor: '#020617', padding: '12px', borderRadius: '8px', border: '1px solid #1e293b', maxHeight: '160px', overflowY: 'auto' }}>
+          <div style={{ flex: '1 1 400px', backgroundColor: '#020617', padding: '12px', borderRadius: '8px', border: '1px solid #1e293b', maxHeight: '180px', overflowY: 'auto' }}>
             {reviews.map((rev, i) => (
               <div key={i} style={s.reviewCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
@@ -445,7 +518,7 @@ export default function App() {
             </button>
           ))}
         </div>
-        <div>NECMİ'NİN YÜKSELİŞİ v7.4 | Kriz: {crisisTimer}s</div>
+        <div>NECMİ'NİN YÜKSELİŞİ v7.4.3 | Kriz: {crisisTimer}s</div>
       </footer>
 
     </div>
